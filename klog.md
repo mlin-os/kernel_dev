@@ -58,7 +58,26 @@ sudo apt-get install firmware-realtek
 sudo apt-get install firmware-linux-nonfree
 ```
 
-#### Install 
+#### Install other useful tools
+1. Get [maximize/minimize/close button](https://askubuntu.com/questions/651347/how-to-bring-back-minimize-and-maximize-buttons-in-gnome-3) back
+
+```Bash
+gsettings set org.gnome.desktop.wm.preferences button-layout "close,minimize,maximize:"
+```
+
+2. Install typora
+
+Copy this [info](https://typora.io/#linux) from typora homepage.
+```Bash
+wget -qO - https://typora.io/linux/public-key.asc | sudo apt-key add -
+
+# add Typora's repository
+sudo add-apt-repository 'deb https://typora.io/linux ./'
+sudo apt-get update
+
+# install typora
+sudo apt-get install typora
+```
 
 ### FAQ
 1. How to remove grub2 if remove dual system?
@@ -143,6 +162,8 @@ see [this](https://wiki.debian.org/HowToIdentifyADevice) for help.
 2020/03/12 - 1. Try fix the acpi bugs by updating UEFI from HP homepage. But it's too slow!!! 2. And do reading about memory management.
 2020/03/21 - 1. Install Outline VPN;
 2020/03/24 - continue to solve missing fireware problem;
+2020/04/10 - install sougoupinyin failed, use libpinyin instead, because testing doesn't have qt4 which existing in jessie;
+2020/04/11 - install typora;
 
 ### Reference
 [^1]:https://www.diskpart.com/windows-10/windows-10-disk-management-0528.html
