@@ -79,6 +79,13 @@ sudo apt-get update
 sudo apt-get install typora
 ```
 
+### Build Linux Kernel
+#### Build Debian latest kernel source code[^7]
+```Bash
+# apt-get install linux-source-5.5
+$ tar xaf /usr/src/linux-source-5.5.tar.xz
+```
+
 ### FAQ
 1. How to remove grub2 if remove dual system?
 
@@ -172,3 +179,4 @@ see [this](https://wiki.debian.org/HowToIdentifyADevice) for help.
 [^4]:https://askubuntu.com/questions/1031993/how-to-install-ubuntu-18-04-alongside-windows-10
 [^5]:https://www.cyberciti.biz/faq/linux-find-wireless-driver-chipset/
 [^6]:https://www.fosslinux.com/14088/how-to-copy-and-paste-commands-in-linux-terminal.htm
+[^7]:https://kernel-team.pages.debian.net/kernel-handbook/ch-common-tasks.html#s-common-official
