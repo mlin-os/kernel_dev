@@ -75,10 +75,12 @@ sudo apt-get install firmware-linux-nonfree
 
 1. Useful tool list
 
-    * git
-    * cscope
-    * ctags
-    * graphviz
+    * git            - necessary
+    * ctags          - create tags file
+    * cscope         - similar to ctags but more powerful
+    * graphviz       - plot tool
+    * outline        - vpn
+    * sougoupinyin   - failed
 
 2. Install and Config vim
 
