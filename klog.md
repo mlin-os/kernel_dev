@@ -1,7 +1,12 @@
 ### Tasks
-- [ ] Install Linux;
-- [ ] Setup environment for kernel development;
-- [ ] 
+- [x] Install Linux;
+- [x] Setup environment for kernel development;
+- [x] Compiler kernel;
+- [ ] Replace kernel used right now;
+- [ ] Write a module;
+- [ ] Debug the kernel;
+- [ ] Trace the mail list;
+- [ ] Find an interesting and soluable question;
 
 #### How to learn Linux kernel development?
 Here are some answers copied from Quora:
