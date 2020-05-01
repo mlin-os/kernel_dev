@@ -166,7 +166,9 @@ Try Accessing the binary with the full path `/sbin/sysctl`. see [this blog](http
 7. How to cut, copy and paste in the terminal[^6]?
 
 To __cut__ Ctrl + Shift + X.
+
 To __copy__ Ctrl + Shift + C.
+
 To __Paste__ Ctrl + Shift + V.
 
 8. Check your favarite alternative to vi
