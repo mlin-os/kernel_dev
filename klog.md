@@ -161,16 +161,19 @@ sudo cat /etc/X11/default-display-manager
 see [this](https://wiki.debian.org/HowToIdentifyADevice) for help.
 
 ### History
-2020/03/06 - Read HOWTO do Linux kernel development from kernel.org;
-2020/03/08 - Download Debian 10 from debian.org and make bootable usb;
-2020/03/09 - Solve the grub remenant problem after remove debian;
-2020/03/10 - Solve the wifi adpater not found problem and `sudo apt-get update` failed problem;
-2020/03/11 - Do a summary;
-2020/03/12 - 1. Try fix the acpi bugs by updating UEFI from HP homepage. But it's too slow!!! 2. And do reading about memory management.
-2020/03/21 - 1. Install Outline VPN;
-2020/03/24 - continue to solve missing fireware problem;
-2020/04/10 - install sougoupinyin failed, use libpinyin instead, because testing doesn't have qt4 which existing in jessie;
-2020/04/11 - install typora;
+Date | Info
+-----|--------
+2020/03/06 | Read HOWTO do Linux kernel development from kernel.org;
+2020/03/08 | Download Debian 10 from debian.org and make bootable usb;
+2020/03/09 | Solve the grub remenant problem after remove debian;
+2020/03/10 | Solve the wifi adpater not found problem and `sudo apt|get update` failed problem;
+2020/03/11 | Do a summary;
+2020/03/12 | 1. Try fix the acpi bugs by updating UEFI from HP homepage. But it's too slow!!! 2. And do reading about memory management.
+2020/03/21 | 1. Install Outline VPN;
+2020/03/24 | Continue to solve missing fireware problem;
+2020/04/10 | Install sougoupinyin failed, use libpinyin instead, because testing doesn't have qt4 which existing in jessie;
+2020/04/11 | Install typora;
+2020/04/29 | Give a representation of slub allocator;
 
 ### Reference
 [^1]:https://www.diskpart.com/windows-10/windows-10-disk-management-0528.html
