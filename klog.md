@@ -198,6 +198,7 @@ Date | Info
 2020/04/10 | Install sougoupinyin failed, use libpinyin instead, because testing doesn't have qt4 which existing in jessie;
 2020/04/11 | Install typora;
 2020/04/29 | Give a representation of slub allocator;
+2020/05/01 | Do a summary;
 
 ### Reference
 [^1]:https://www.diskpart.com/windows-10/windows-10-disk-management-0528.html
