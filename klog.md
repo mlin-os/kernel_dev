@@ -19,7 +19,7 @@ Here are some answers copied from Quora:
 
 ### Problems unsolved
 1. Fix acpi error
-2. 
+2. Download the latest kernel directly from [github](https://github.com/torvalds/linux.git) failed
 
 ### Install Debian 10
 1. Make a free partition for Debian[^1]
@@ -71,11 +71,18 @@ sudo apt-get install firmware-realtek
 sudo apt-get install firmware-linux-nonfree
 ```
 
-#### Install other useful tools
+### Install other useful tools
 
 1. Install and Config git
 
 2. Install and Config vim
+
+useful plugins list:
+Name | Description | Source
+vim-plug | one of vim plugin managers | https://github.com/junegunn/vim-plug.git
+molokai | color scheme | https://github.com/tomasr/molokai.git
+nerdtree | directory explorer tool | https://github.com/junegunn/vim-plug.git
+tarbar | search and jump tag tool | https://github.com/majutsushi/tagbar.git
 
 3. Install typora
 
