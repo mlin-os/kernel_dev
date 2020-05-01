@@ -79,6 +79,7 @@ sudo apt-get install firmware-linux-nonfree
 
 useful plugins list:
 Name | Description | Source
+-----|-------------|------------------
 vim-plug | one of vim plugin managers | https://github.com/junegunn/vim-plug.git
 molokai | color scheme | https://github.com/tomasr/molokai.git
 nerdtree | directory explorer tool | https://github.com/junegunn/vim-plug.git
