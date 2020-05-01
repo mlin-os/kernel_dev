@@ -73,7 +73,12 @@ sudo apt-get install firmware-linux-nonfree
 
 ### Install other useful tools
 
-1. Install and Config git
+1. Useful tool list
+
+    * git
+    * cscope
+    * ctags
+    * graphviz
 
 2. Install and Config vim
 
