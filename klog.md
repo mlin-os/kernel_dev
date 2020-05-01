@@ -82,7 +82,26 @@ sudo apt-get install firmware-linux-nonfree
     * outline        - vpn
     * sougoupinyin   - failed
 
-2. Install and Config vim
+2. Install and Config git
+
+git-scm gives a [basic setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup)
+```Bash
+$ git config --global user.name "John Doe"
+$ git config --global user.email johndoe@example.com
+$ git config --global core.editor vim
+```
+
+Instead of use ssh which must manager your key, here I choose store the key with [credentials](https://stackoverflow.com/questions/35942754/how-to-save-username-and-password-in-git-gitextension)
+```Bash
+# save the key in cache for 3600s
+git config --global credential.helper 'cache --timeout=3600'
+```
+You can also save it permenantly
+```Bash
+git config --global credential.helper store
+```
+
+3. Install and Config vim
 
 useful plugins list:
 Name | Description | Source
@@ -92,7 +111,7 @@ molokai | color scheme | https://github.com/tomasr/molokai.git
 nerdtree | directory explorer tool | https://github.com/junegunn/vim-plug.git
 tarbar | search and jump tag tool | https://github.com/majutsushi/tagbar.git
 
-3. Install typora
+4. Install typora
 
 Copy below [info](https://typora.io/#linux) from typora homepage.
 ```Bash
