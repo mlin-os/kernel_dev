@@ -111,6 +111,8 @@ molokai | color scheme | https://github.com/tomasr/molokai.git
 nerdtree | directory explorer tool | https://github.com/junegunn/vim-plug.git
 tarbar | search and jump tag tool | https://github.com/majutsushi/tagbar.git
 
+[vimawesome](https://vimawesome.com/)  is a vim plug web where you can search and install vim plug.
+
 4. Install typora
 
 Copy below [info](https://typora.io/#linux) from typora homepage.
