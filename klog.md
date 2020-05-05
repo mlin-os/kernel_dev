@@ -160,10 +160,11 @@ Then, install using
 $ sudo apt install linux-image-<flavour>
 ```
 
-#### Build Debian latest kernel source code[^7]
+#### Build Debian latest kernel from source code
+As the [homepage](https://kernel-team.pages.debian.net/kernel-handbook/ch-common-tasks.html#s-common-official) demenstrates
 ```Bash
-# apt-get install linux-source-5.5
-$ tar xaf /usr/src/linux-source-5.5.tar.xz
+# apt-get install linux-source-5.6
+$ tar xaf /usr/src/linux-source-5.6.tar.xz
 ```
 
 ### FAQ
@@ -276,6 +277,7 @@ Date | Info
 2020/04/11 | Install typora;
 2020/04/29 | Give a representation of slub allocator;
 2020/05/01 | Do a summary;
+2020/05/05 | Compile kernel as debian homepage suggested;
 
 ### Reference
 [^1]:https://www.diskpart.com/windows-10/windows-10-disk-management-0528.html
