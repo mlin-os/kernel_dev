@@ -126,6 +126,26 @@ sudo apt-get install typora
 ```
 
 ### Build Linux Kernel
+#### Display kernel version used right now
+```Bash
+# First way
+mu@ustc:~$ uname -r
+5.6.0-1-amd64
+
+# Second way
+mu@ustc:~$ cat /proc/version
+Linux version 5.6.0-1-amd64 (debian-kernel@lists.debian.org) (gcc version 9.3.0 (Debian 9.3.0-11)) #1 SMP Debian 5.6.7-1 (2020-04-29)
+
+# Third way
+mu@ustc:~$ hostnamectl | grep Kernel
+            Kernel: Linux 5.6.0-1-amd64
+
+# Fourth way
+mu@ustc:~$ sudo dmesg |grep 'Linux'
+[sudo] password for mu:
+[    0.000000] Linux version 5.6.0-1-amd64 (debian-kernel@lists.debian.org) (gcc version 9.3.0 (Debian 9.3.0-11)) #1 SMP Debian 5.6.7-1 (2020-04-29)
+```
+
 #### Build Debian latest kernel source code[^7]
 ```Bash
 # apt-get install linux-source-5.5
