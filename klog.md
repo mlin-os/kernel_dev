@@ -146,6 +146,20 @@ mu@ustc:~$ sudo dmesg |grep 'Linux'
 [    0.000000] Linux version 5.6.0-1-amd64 (debian-kernel@lists.debian.org) (gcc version 9.3.0 (Debian 9.3.0-11)) #1 SMP Debian 5.6.7-1 (2020-04-29)
 ```
 
+#### How to upgrade Linux kernel
+
+Debian homepage provide this [method](https://wiki.debian.org/HowToUpgradeKernel).
+
+First, detect alternative kernel images by
+```
+apt-cache search linux-image
+```
+
+Then, install using
+```Bash
+$ sudo apt install linux-image-<flavour>
+```
+
 #### Build Debian latest kernel source code[^7]
 ```Bash
 # apt-get install linux-source-5.5
