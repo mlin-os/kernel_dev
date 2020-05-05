@@ -11,7 +11,7 @@ Here are some answers copied from Quora:
 - [x] Install Linux;
 - [x] Setup environment for kernel development;
 - [x] Compiler kernel;
-- [ ] Replace kernel used right now;
+- [ ] Replace current kernel;
 - [ ] Write a module;
 - [ ] Debug the kernel;
 - [ ] Trace the mail list;
@@ -126,7 +126,7 @@ sudo apt-get install typora
 ```
 
 ### Build Linux Kernel
-#### Display kernel version used right now
+#### Display current kernel version
 ```Bash
 # First way
 mu@ustc:~$ uname -r
@@ -244,15 +244,23 @@ sudo cat /etc/X11/default-display-manager
 /usr/sbin/gdm3
 ```
 
-10. How to identify a device
+10. How to identify devices that are connected to your computer
 
 see [this](https://wiki.debian.org/HowToIdentifyADevice) for help.
 
-12. Get [maximize/minimize/close button](https://askubuntu.com/questions/651347/how-to-bring-back-minimize-and-maximize-buttons-in-gnome-3) back
+11. Get [maximize/minimize/close button](https://askubuntu.com/questions/651347/how-to-bring-back-minimize-and-maximize-buttons-in-gnome-3) back
 
 ```Bash
 gsettings set org.gnome.desktop.wm.preferences button-layout "close,minimize,maximize:"
 ```
+
+12. How to list installed packages
+
+This [blog](https://linuxize.com/post/how-to-list-installed-packages-on-debian/) gives below command
+```Bash
+sudo apt list --installed
+```
+
 ### History
 Date | Info
 -----|--------
