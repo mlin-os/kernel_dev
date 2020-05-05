@@ -1,11 +1,16 @@
-### How to learn Linux kernel development?
-Here are some answers copied from Quora:
+### Preamble
+
+#### How to learn Linux kernel development?
+Here are answers copied from Quora:
 
 > Find a very simple component in the kernel and draw a diagram of what it is doing. Several diagrams, possibly. You'll want a flow chart but you'll also want to show how data changes.
 > Don't chase down too many calls, you want to stay fairly local. Treat most calls as entry ways into black boxes. You know what goes in and something of what comes out.
 > If you get stuck because you don't have information, then expand the relevant black box in another couple of diagrams, as far as needed.
 > You now have the hang of things. Find something that actually interests, repeat until you think you understand it, then tweak and see what happens. Experiment.
 > Once you're happy, copy the latest tree from git into your own github account, copy to your computer, make changes that appeal to you and send that back to your github account once you're sure you've checked for bugs and that the coding guidelines are followed. Once it's there, join the linux kernel developer’s mailing list and follow the guidelines carefully.
+
+#### Good tutorials
+1. [FirstKernelPatch](https://kernelnewbies.org/FirstKernelPatch)
 
 ### Tasks
 - [x] Install Linux;
