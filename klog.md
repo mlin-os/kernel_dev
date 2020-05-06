@@ -179,7 +179,7 @@ $ tar xaf /usr/src/linux-source-5.6.tar.xz
 
 As this [question](https://superuser.com/questions/287371/obtain-kernel-config-from-currently-running-linux-system) answers:
 ```Bash
-cp /boot/config-$(uname -r) your_kernel_source_dir
+cp /boot/config-$(uname -r) your_kernel_source_top_dir/.config
 ```
 
 ### FAQ
@@ -293,6 +293,7 @@ Date | Info
 2020/04/29 | Give a representation of slub allocator;
 2020/05/01 | Do a summary;
 2020/05/05 | Compile kernel as debian homepage suggested;
+2020/05/06 | Get config file of your current running kernel;
 
 ### Reference
 [^1]:https://www.diskpart.com/windows-10/windows-10-disk-management-0528.html
