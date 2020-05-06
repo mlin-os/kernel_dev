@@ -166,10 +166,20 @@ $ sudo apt install linux-image-<flavour>
 ```
 
 #### Build Debian latest kernel from source code
+
+1. Get the debian latest kernel source code
+
 As the [homepage](https://kernel-team.pages.debian.net/kernel-handbook/ch-common-tasks.html#s-common-official) demenstrates
 ```Bash
 # apt-get install linux-source-5.6
 $ tar xaf /usr/src/linux-source-5.6.tar.xz
+```
+
+2. Get the config file of your current running kernel
+
+As this [question](https://superuser.com/questions/287371/obtain-kernel-config-from-currently-running-linux-system) answers:
+```Bash
+cp /boot/config-$(uname -r) your_kernel_source_dir
 ```
 
 ### FAQ
