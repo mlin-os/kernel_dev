@@ -86,6 +86,7 @@ sudo apt-get install firmware-linux-nonfree
     * graphviz       - plot tool
     * outline        - vpn
     * sougoupinyin   - failed
+    * exiftool       - tool to manage meta info
 
 2. Install and Config git
 
@@ -128,6 +129,18 @@ sudo apt-get update
 
 # install typora
 sudo apt-get install typora
+```
+
+5. Install exiftool
+
+As this [post](https://www.poftut.com/how-to-install-and-use-exiftool-in-linux-windows-kali-ubuntu-mint-with-examples/) says
+```Bash
+sudo apt-get install libimage-exiftool-perl
+```
+
+use exiftool to [remove xmp metadata](https://exiftool.org/forum/index.php?topic=6498.0) from pdf
+```Bash
+exiftool -all:all= XXX.pdf
 ```
 
 ### Build Linux Kernel
