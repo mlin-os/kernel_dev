@@ -25,6 +25,10 @@ Here are answers copied from Quora:
 ### Problems unsolved
 1. Fix acpi error
 2. Download the latest kernel directly from [github](https://github.com/torvalds/linux.git) failed
+3. How to config vim based on filetype. see
+
+https://stackoverflow.com/questions/158968/changing-vim-indentation-behavior-by-file-type
+https://vi.stackexchange.com/questions/4/how-can-i-change-the-default-indentation-based-on-filetype
 
 ### Install Debian 10
 1. Make a free partition for Debian[^1]
