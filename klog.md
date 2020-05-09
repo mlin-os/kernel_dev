@@ -113,7 +113,7 @@ git config --global credential.helper store
 
 3. Install and Config vim
 
-useful plugins list:
+Useful plugins list:
 Name | Description | Source
 -----|-------------|------------------
 vim-plug | one of vim plugin managers | https://github.com/junegunn/vim-plug.git
@@ -121,7 +121,7 @@ molokai | color scheme | https://github.com/tomasr/molokai.git
 nerdtree | directory explorer tool | https://github.com/junegunn/vim-plug.git
 tarbar | search and jump tag tool | https://github.com/majutsushi/tagbar.git
 
-[vimawesome](https://vimawesome.com/)  is a vim plug web where you can search and install vim plug.
+[vimawesome](https://vimawesome.com/)  is a vim plugin web where you can search and install vim plugin. you can find the most popular and powerful ones recommended by other users.
 
 4. Install typora
 
