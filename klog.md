@@ -116,12 +116,15 @@ git config --global credential.helper store
 [vimawesome](https://vimawesome.com/)  is a vim plugin web where you can search and install vim plugin. you can find the most popular and powerful ones recommended by other users.
 
 Here are some useful plugins that I have tried:
-Name | Description | Source
------|-------------|------------------
-vim-plug | one of vim plugin managers | https://github.com/junegunn/vim-plug.git
-molokai | color scheme | https://github.com/tomasr/molokai.git
-nerdtree | directory explorer tool | https://github.com/junegunn/vim-plug.git
-tarbar | search and jump tag tool | https://github.com/majutsushi/tagbar.git
+| Name              | Description                | Source                                                 |
+|-------------------|----------------------------|--------------------------------------------------------|
+| vim-plug          | one of vim plugin managers | https://github.com/junegunn/vim-plug.git               |
+| molokai           | color scheme               | https://github.com/tomasr/molokai.git                  |
+| nerdtree          | directory explorer tool    | https://github.com/junegunn/vim-plug.git               |
+| tarbar            | search and jump tag tool   | https://github.com/majutsushi/tagbar.git               |
+| vim-markdown      | vim config for markdown    | https://github.com/plasticboy/vim-markdown.git         |
+| vim-indent-guides | show vim indent level      | https://github.com/nathanaelkane/vim-indent-guides.git |
+| vim-table-mode    | fast way to create table   | https://github.com/dhruvasagar/vim-table-mode.git      |
 
 4. Install typora
 
@@ -297,22 +300,23 @@ sudo apt list --installed
 ```
 
 ### History
-Date | Info
------|--------
-2020/03/06 | Read HOWTO do Linux kernel development from kernel.org;
-2020/03/08 | Download Debian 10 from debian.org and make bootable usb;
-2020/03/09 | Solve the grub remenant problem after remove debian;
-2020/03/10 | Solve the wifi adpater not found problem and `sudo apt|get update` failed problem;
-2020/03/11 | Do a summary;
-2020/03/12 | 1. Try fix the acpi bugs by updating UEFI from HP homepage. But it's too slow!!! 2. And do reading about memory management.
-2020/03/21 | 1. Install Outline VPN;
-2020/03/24 | Continue to solve missing fireware problem;
-2020/04/10 | Install sougoupinyin failed, use libpinyin instead, because testing doesn't have qt4 which existing in jessie;
-2020/04/11 | Install typora;
-2020/04/29 | Give a representation of slub allocator;
-2020/05/01 | Do a summary;
-2020/05/05 | Compile kernel as debian homepage suggested;
-2020/05/06 | Get config file of your current running kernel;
+| Date       | Info                                                                                                                        |
+|------------|-----------------------------------------------------------------------------------------------------------------------------|
+| 2020/03/06 | Read HOWTO do Linux kernel development from kernel.org;                                                                     |
+| 2020/03/08 | Download Debian 10 from debian.org and make bootable usb;                                                                   |
+| 2020/03/09 | Solve the grub remenant problem after remove debian;                                                                        |
+| 2020/03/10 | Solve the wifi adpater not found problem and `sudo apt get update` failed problem;                                          |
+| 2020/03/11 | Do a summary;                                                                                                               |
+| 2020/03/12 | 1. Try fix the acpi bugs by updating UEFI from HP homepage. But it's too slow!!! 2. And do reading about memory management. |
+| 2020/03/21 | 1. Install Outline VPN;                                                                                                     |
+| 2020/03/24 | Continue to solve missing fireware problem;                                                                                 |
+| 2020/04/10 | Install sougoupinyin failed, use libpinyin instead, because testing doesn't have qt4 which existing in jessie;              |
+| 2020/04/11 | Install typora;                                                                                                             |
+| 2020/04/29 | Give a representation of slub allocator;                                                                                    |
+| 2020/05/01 | Do a summary;                                                                                                               |
+| 2020/05/05 | Compile kernel as debian homepage suggested;                                                                                |
+| 2020/05/06 | Get config file of your current running kernel;                                                                             |
+| 2020/05/12 | Update vim plugins recommendation list;                                                                                     |
 
 ### Reference
 [^1]:https://www.diskpart.com/windows-10/windows-10-disk-management-0528.html
