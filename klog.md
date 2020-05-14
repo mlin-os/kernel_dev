@@ -30,6 +30,12 @@ Here are answers copied from Quora:
 https://stackoverflow.com/questions/158968/changing-vim-indentation-behavior-by-file-type
 https://vi.stackexchange.com/questions/4/how-can-i-change-the-default-indentation-based-on-filetype
 
+4. Good plugins waiting to try later:
+
+[powerline](https://github.com/powerline/powerline)
+[deoplete](https://github.com/Shougo/deoplete.nvim)
+[python-mode](https://github.com/python-mode/python-mode)
+
 ### Install Debian 10
 1. Make a free partition for Debian[^1]
 

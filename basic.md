@@ -57,3 +57,80 @@ By the way, it's true even the chosen task requires the same spinlock has a lowe
 * __vmlinuz__ is vmlinux file compressed with `zlib`.
 * __zImage__ (make zImage) is the old format for small kernels (compressed, below 512K). At boot, this iamge gets loaded low in memroy (the first 640KB of the RAM).
 * __bzImage__ (make bzImage) was created while the kerenel grew handles bigger images (compressed, over 512KB). The image gets loaded high in memroy (above 1MB RAM).
+
+13. How do ebp and esp work?
+
+This [page](https://en.wikibooks.org/wiki/X86_Disassembly/Functions_and_Stack_Frames) gives a good explanation. The main content is copied as bellow:
+
+In the execution environment, functions are frequently set up with a "__stack frame__" to allow access to both function parameters, and automatic function variables.
+When a function is called, a new stack frame is created at the current __esp__ location. A stack frame acts like a partition on the stack.
+
+The Standard Entry Sequence is the following piece of code (X is the total size, in bytes, of all automatic variables used in the function):
+```masm
+push ebp
+mov ebp, esp
+sub esp, X
+```
+For example, here is a C function code fragment and the resulting assembly instructions:
+```C
+void MyFunction(void)
+{
+    int a, b, c;
+}
+```
+```masm
+_MyFunction:
+    push ebp      ; save the value of ebp
+    mov ebp, esp  ; ebp now points to the top of the stack
+    sub esp, 12   ; space allocated on the stack for the local variables
+```
+For function with parameters:
+```C
+MyFunction2(10, 5, 2);
+```
+This will create the following assembly code:
+```masm
+push 2
+push 5
+push 10
+call _MyFunction2
+```
+Remember that the __call__ x86 instruction is basically equivalent to
+```masm
+push eip +2 ; return address is current address + size of two instructions
+jmp _MyFunction2
+```
+and pushing basically does this:
+```masm
+sub esp, 4   ; "allocate" space for the new stack item
+mov [esp], X ; put new stack item value X in
+```
+Here is a (crude) representation of the stack at this point:
+![stack content](./figures/representation_of_stack.png)
+
+The Standard Exit Sequence must undo the things that the Standard Entry Sequence does. Thus, it must perform the following tasks, in the following order:
+    1. Remove space for local variables, by reverting __esp__ to its old value.
+    2. Restore the old value of __ebp__ to its old value, which is on top the stack.
+    3. Return to the calling function with a _ret_ command.
+
+As an example, the following C code:
+```C
+void MyFunction3(int x, int y, int z)
+{
+    int a, b, c;
+    ...
+    return;
+}
+```
+Will create the following assembly code:
+```masm
+_MyFunction3:
+    push ebp
+    mov ebp, esp
+    sub esp, 12   ; sizeof(a) + sizeof(b) + sizeof(c)
+    ; x = [ebp + 8], y = [ebp + 12], z= [ebp + 16]
+    ; a = [ebp - 4] = [esp + 8], b = [ebp - 8] = [esp + 4], c = [ebp - 12] = [esp]
+    mov esp, ebp
+    pop ebp
+    ret 12 ; sizeof(a) + sizeof(b) + sizeof(c)
+```
