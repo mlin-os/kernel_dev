@@ -66,21 +66,22 @@ deb http://ftp2.cn.debian.org/debian/ testing main contrib non-free
 deb http://ftp2.cn.debian.org/debian/ testing-updates main contrib non-free
 ```
 
-7. Solve missing non-free firmware problems
+7. Solve missing non-free firmwares for r8169
 
-realtek-firmware: missing rtl8125a-3.fw, see [this](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=947356) for help.
+Install realtek fireware firmware first, it will fix most of missing problems.
+```Bash
+sudo apt-get install firmware-realtek
+```
+
+After doing this, rtl8125a-3.fw and rtl8168fp-3.fw are still missing. This [site](http://anduin.linuxfromscratch.org/sources/linux-firmware/rtl_nic/) provides a list of firmwares related to this problem.
+
+For rtl8125a-3.fw, you can also get it in this [way](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=947356):
 ```Bash
 root# cd /lib/firmware/rtl_nic
 root# wget https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/plain/rtl_nic/rtl8125a-3.fw
 ```
 
-8. Solve possible missing firmware for r8169
-
-```Bash
-sudo apt-get install firmware-realtek
-```
-
-9. Solve possible missing firmware for non-free module
+8. Solve possible missing firmware for non-free module
 
 ```Bash
 sudo apt-get install firmware-linux-nonfree
