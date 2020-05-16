@@ -25,16 +25,8 @@ Here are answers copied from Quora:
 ### Problems unsolved
 1. Fix acpi error
 2. Download the latest kernel directly from [github](https://github.com/torvalds/linux.git) failed
-3. How to config vim based on filetype. see
+3. More efficiently use of vim
 
-https://stackoverflow.com/questions/158968/changing-vim-indentation-behavior-by-file-type
-https://vi.stackexchange.com/questions/4/how-can-i-change-the-default-indentation-based-on-filetype
-
-4. Good plugins waiting to try later:
-
-[powerline](https://github.com/powerline/powerline)
-[deoplete](https://github.com/Shougo/deoplete.nvim)
-[python-mode](https://github.com/python-mode/python-mode)
 
 ### Install Debian 10
 1. Make a free partition for Debian[^1]
@@ -66,7 +58,14 @@ deb http://ftp2.cn.debian.org/debian/ testing main contrib non-free
 deb http://ftp2.cn.debian.org/debian/ testing-updates main contrib non-free
 ```
 
-7. Solve missing non-free firmwares for r8169
+7. Solve possible missing firmware for non-free module
+
+```Bash
+sudo apt-get install firmware-linux-nonfree
+```
+This is enough for most module.
+
+8. Solve missing non-free firmwares for r8169
 
 Install realtek fireware firmware first, it will fix most of missing problems.
 ```Bash
@@ -79,12 +78,6 @@ For rtl8125a-3.fw, you can also get it in this [way](https://bugs.debian.org/cgi
 ```Bash
 root# cd /lib/firmware/rtl_nic
 root# wget https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/plain/rtl_nic/rtl8125a-3.fw
-```
-
-8. Solve possible missing firmware for non-free module
-
-```Bash
-sudo apt-get install firmware-linux-nonfree
 ```
 
 ### Install other useful tools
