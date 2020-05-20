@@ -189,12 +189,19 @@ $ sudo apt install linux-image-<flavour>
 
 #### Build Debian latest kernel from source code
 
+Here is a detailed [process](https://www.dwarmstrong.org/kernel/) from a kernel developer. Or do as the [debian homepage](https://kernel-team.pages.debian.net/kernel-handbook/ch-common-tasks.html#s-common-official) demenstrates
+
 1. Get the debian latest kernel source code
 
-As the [homepage](https://kernel-team.pages.debian.net/kernel-handbook/ch-common-tasks.html#s-common-official) demenstrates
 ```Bash
 # apt-get install linux-source-5.6
 $ tar xaf /usr/src/linux-source-5.6.tar.xz
+```
+
+2. How to detect the version of linux kernel source tree?
+```Bash
+mu@ustc:~/linux-source-5.6$ make kernelversion
+5.6.7
 ```
 
 2. Get the config file of your current running kernel
@@ -202,6 +209,36 @@ $ tar xaf /usr/src/linux-source-5.6.tar.xz
 As this [question](https://superuser.com/questions/287371/obtain-kernel-config-from-currently-running-linux-system) answers:
 ```Bash
 cp /boot/config-$(uname -r) your_kernel_source_top_dir/.config
+```
+
+3. Moidify the copied configuration and set
+
+```Bash
+CONFIG_SYSTEM_TRUSTED_KEYS = ""
+```
+
+4. Build the kernel
+
+```Bash
+make clean
+make deb-pkg LOCALVERSION=-custom
+```
+
+5. New packages will be stored at
+
+```Bash
+mu@ustc:~/linux-source-5.6$ ls ../*deb
+../linux-headers-5.6.7-custom_5.6.7-custom-1_amd64.deb
+../linux-image-5.6.7-custom_5.6.7-custom-1_amd64.deb
+../linux-image-5.6.7-custom-dbg_5.6.7-custom-1_amd64.deb
+../linux-libc-dev_5.6.7-custom-1_amd64.deb
+```
+
+6. Install and Reboot
+
+```Bash
+sudo dpkg -i ../linux-image-5.6.7-custom-dbg_5.6.7-custom-1_amd64.deb
+sudo shutdown -r now
 ```
 
 ### FAQ
