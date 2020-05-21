@@ -241,6 +241,43 @@ sudo dpkg -i ../linux-image-5.6.7-custom-dbg_5.6.7-custom-1_amd64.deb
 sudo shutdown -r now
 ```
 
+#### Build kernel from kernel source distributed from www.kernel.org
+
+1. Get the latest stable kernel source code
+
+```Bash
+wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-5.6.14.tar.xz 
+wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-5.6.14.tar.sign 
+```
+
+2. [Use the web key directory](https://www.kernel.org/signature.html)
+
+```Bash
+gpg2 --locate-keys torvalds@kernel.org gregkh@kernel.org
+```
+
+3. Verify the signature
+
+```Bash
+mu@ustc:~/linux$ unxz -c linux-5.6.14.tar.xz |gpg --verify linux-5.6.14.tar.sign -
+gpg: Signature made Wed 20 May 2020 02:23:42 PM CST
+gpg:                using RSA key 647F28654894E3BD457199BE38DBBDC86092693E
+gpg: Good signature from "Greg Kroah-Hartman <gregkh@kernel.org>" [unknown]
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: 647F 2865 4894 E3BD 4571  99BE 38DB BDC8 6092 693E
+```
+
+4. Unpack the source code
+
+```Bash
+tar xaf linux-5.6.14.tar.xz
+```
+
+5. Comiler and Replace your kernel
+
+The remain tasks are the same as building debian kernel.
+
 ### FAQ
 1. How to remove grub2 if remove dual system?
 
@@ -354,6 +391,7 @@ sudo apt list --installed
 | 2020/05/05 | Compile kernel as debian homepage suggested;                                                                                |
 | 2020/05/06 | Get config file of your current running kernel;                                                                             |
 | 2020/05/12 | Update vim plugins recommendation list;                                                                                     |
+| 2020/05/21 | Replace current kernel using source code distributed from www.kernel.org                                                    |
 
 ### Reference
 [^1]:https://www.diskpart.com/windows-10/windows-10-disk-management-0528.html
