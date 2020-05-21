@@ -16,16 +16,23 @@ Here are answers copied from Quora:
 - [x] Install Linux;
 - [x] Setup environment for kernel development;
 - [x] Compiler kernel;
-- [ ] Replace current kernel;
+- [x] Replace current kernel;
 - [ ] Write a module;
 - [ ] Debug the kernel;
 - [ ] Trace the mail list;
 - [ ] Find an interesting and soluable question;
 
 ### Problems unsolved
+
 1. Fix acpi error
+
 2. Download the latest kernel directly from [github](https://github.com/torvalds/linux.git) failed
+
 3. More efficiently use of vim
+
+4. Should I maintain my own PGP?
+
+see [kernel doc](https://www.kernel.org/doc/html/v4.16/process/maintainer-pgp-guide.html) for details. 
 
 
 ### Install Debian 10
@@ -234,7 +241,7 @@ mu@ustc:~/linux-source-5.6$ ls ../*deb
 ../linux-libc-dev_5.6.7-custom-1_amd64.deb
 ```
 
-6. Install and Reboot
+6. Install and reboot
 
 ```Bash
 sudo dpkg -i ../linux-image-5.6.7-custom-dbg_5.6.7-custom-1_amd64.deb
@@ -274,7 +281,7 @@ Primary key fingerprint: 647F 2865 4894 E3BD 4571  99BE 38DB BDC8 6092 693E
 tar xaf linux-5.6.14.tar.xz
 ```
 
-5. Comiler and Replace your kernel
+5. Build and replace your kernel
 
 The remain tasks are the same as building debian kernel.
 
