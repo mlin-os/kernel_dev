@@ -11,6 +11,7 @@ Here are answers copied from Quora:
 
 #### Good tutorials
 1. [FirstKernelPatch](https://kernelnewbies.org/FirstKernelPatch)
+2. [get stable kernel source code](https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/)
 
 ### Tasks
 - [x] Install Linux;
