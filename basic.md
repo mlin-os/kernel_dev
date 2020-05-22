@@ -134,3 +134,12 @@ _MyFunction3:
     pop ebp
     ret 12 ; sizeof(a) + sizeof(b) + sizeof(c)
 ```
+
+14. [What's the difference betweeen ia64 and x64](http://www.differencebetween.net/technology/difference-between-ia64-and-x64/)?
+
+> 1. IA64 refers to the 64 bit Itanium architecture while x64 is the 64 bit extension to the x86 architecture
+> 2. The IA64 is exclusive to Intel while x64 is used by all
+> 3. IA64 was intended for high-end server applications while x64 was initially intended for desktops but were scaled up
+> 4. IA64 systems are not able to run old x86 applications while most x64 systems are
+> 5. IA64 is very slow to adopt new computer technologies while x64 is very fast
+> 6. IA64 would no longer be supported by newer versions of Microsoft Windows while the x64 would still be supported
