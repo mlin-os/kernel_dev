@@ -45,5 +45,14 @@ Flag | Description
 > the memory management unit (MMU) that do the translation from virtual to physical address typically deals in page.
 > 
 
+2. Dynamic RAM (DRAM)
+
+> DRAM stores each bit as charge on a capacitor. DRAM storage can be made very dense - each cell consists of a capacitor and a single access transistor.
+> Various sources of leakage current cause a DRAM cell to lose its charge within a time period of around 10 to 100 milliseconds (it's enough for CPU). The memory system must periodically refresh every bit of meory by reading it out and then rewriting it.
+> The cells (bits) in a DRAM chip are partitioned into _d supercells_, each consisting of _w_ DRAM cells. A _d_ * _w_ DRAM stores stores a total of _dw_ bits of information. The supercells are organized as a rectangular arrya with _r_ rows and _c_ columns, where _rc = d_.
+> Information flows in and out of the chip via external connectors called _pins_. Each pin carries a 1-bit signal.
+> Each DRAM chip is connected to some circuitry, known as the _memory controller_, that can transer _w_ bits at a time to and from each DRAM chip. To read the contents of supercell (i, j), the memory controller sends the row address _i_ (called a _RAS_, _row access strobe request_) to the DRAM, followed by the column address _j_ (called a _CAS_, _column access strobe request_). RAS and CAS requests share the same DRAM address pins.
+> DRAM chips are packaged in _memory modules_ that plug into expansion slots on the main system board (mortherboard).
+
 ##### Reference
 https://www.kernel.org/doc/html/v4.16/process/howto.html
