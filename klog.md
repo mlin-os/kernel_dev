@@ -382,6 +382,16 @@ This [blog](https://linuxize.com/post/how-to-list-installed-packages-on-debian/)
 sudo apt list --installed
 ```
 
+13. How to undo integration of outline with linux system?
+
+Here is a method copied from [jigsaw](https://github.com/Jigsaw-Code/outline-client/issues/648):
+```Bash
+rm -rf ~/.config/Outline/
+rm -f ~/.config/autostart/Outline-Client.AppImage.desktop
+find ~/.local/share/icons -name "appimagekit-outline-client.png" -delete
+rm -f /path/to/Outline-Client.AppImage
+```
+
 ### History
 | Date       | Info                                                                                                                        |
 |------------|-----------------------------------------------------------------------------------------------------------------------------|
