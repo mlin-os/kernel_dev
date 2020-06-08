@@ -1,10 +1,20 @@
+#### What's the purposes of system calls?
+
+> First, it provides an abstracted hardware interface for userspace.
+> 
+> Second, system calls ensure system security and stability.
+> 
+> Finally, a single common layer between user-sapce and the rest of the system allows for the virtualized system provided to processes.
+
 #### [How to get the location of C standard libary](https://stackoverflow.com/questions/5925678/location-of-c-standard-library?answertab=votes#tab-top)?
+
 ```Bash
 mu@ustc:~$ gcc --print-file-name=libc.a
 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/libc.a
 ```
 
 #### How to get the assembly code from a static lib?
+
 ```Bash
 objdump -d /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/libc.a
 
