@@ -99,6 +99,7 @@ root# wget https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmwa
     * outline        - vpn
     * sougoupinyin   - failed
     * exiftool       - tool to manage meta info
+    * zotero         - A tool to manage article reference
 
 2. Install and Config git
 
