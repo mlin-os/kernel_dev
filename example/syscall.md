@@ -57,3 +57,7 @@ objdump -d /lib/x86_64-linux-gnu/libc.so.6
    cbb8f:       00
 ```
 Here 0x27 is the system call number of `getpid()` and passed to kernel space by register __eax__. The switch from user space to kernel is completed by __syscall__ instruction.
+
+#### What happened after entering kernel space?
+
+Here is an awesome explaination from [linux-insides progject](https://github.com/0xAX/linux-insides/blob/master/SysCall/linux-syscall-2.md).
