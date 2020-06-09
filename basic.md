@@ -143,3 +143,14 @@ _MyFunction3:
 > 4. IA64 systems are not able to run old x86 applications while most x64 systems are
 > 5. IA64 is very slow to adopt new computer technologies while x64 is very fast
 > 6. IA64 would no longer be supported by newer versions of Microsoft Windows while the x64 would still be supported
+
+15. [How to get the size of CPU cache in linux](https://stackoverflow.com/questions/30207256/how-to-get-the-size-of-cpu-cache-in-linux)?
+
+```Bash
+getconf -a |grep CACHE
+```
+
+16. [What is branch prediction](https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array)?
+
+> If you guessed right, it continues on.
+> If you guessed wrong, the captain will stop, back up, and yell at you to flip the switch. Then it can restart down the other path.
