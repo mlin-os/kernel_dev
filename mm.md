@@ -2,6 +2,27 @@
 [kernel.org](https://www.kernel.org/doc/html/v4.16/index.html)
 
 ### Memory Management
+
+#### Common senses
+
+* Contiguous linear addresses within a page are mapped into contiguous physical addresses.
+
+#### Comparisons
+
+1. What's the difference between page and page frame?
+
+> the former is just a block of data, which may be stored in any page frame or on disk. A page frame is a constituent of main memory, and hence it is a storage area.
+
+2. Segment Selector vs. Segment Descriptor
+
+> A logical address consists of two parts: a segment identifier and an offset that specifies the relative address within the segment. The segment identifier is a 16-bit field called the _Segment Selector_.
+> Each segment is represented by an 8-byte _Segment Descriptor_ that describes the segment characteristics.
+
+3. write-through vs. write-back
+
+> _write-through_ is simpler, which write the cache block to the next lower leve imediately. While simple, write-through has the disadvantage of causing bus traffic with every write.
+> _write-back_ defers the update as long as possible by writing the updated block to the next lower level only when it is evicted from the cache by the repalcement algorithm. It has the disadvantage of additional complexity.
+
 #### Pages
 
 > Most 32-bit architecutres have 4KB pages, whereas most 64-bit architectures have 8KB pages.

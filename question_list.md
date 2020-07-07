@@ -17,3 +17,7 @@
 5. slub通用的kmalloc_caches的前三个用途是什么？
 
 6. 从用户态通过系统调用到内核态中间具体做了些什么？
+
+7. what's the differencies between trap, exception and interrupt?
+
+__idtentry__ macro performs the preparations required before an exception handler will be called, the __interrupt__ macro performs the preparations required before an interrupt handler will be called and the _entry_SYSCALL_64_ will do the preparations required before a system call handler will be executed.

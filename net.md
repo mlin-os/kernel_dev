@@ -12,6 +12,10 @@
 
 [Wiki](https://en.wikipedia.org/wiki/Netlink)
 
+### Internet Control Message Protocol (ICMP)
+
+> ICMP is part of the Internet protocol suite as defined in RFC 782.
+
 ### FAQ
 
 1. How to fetch L2, L3 and L4 header?
