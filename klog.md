@@ -309,9 +309,11 @@ See [diskpart](https://askubuntu.com/questions/429610/uninstall-grub-and-use-win
 
 First, check what wifi adapter you use by `lspic` command[^5].
 ```Bash
-lspci | grep -i wireless
+mu@ustc:~$ lspci |grep -i -E 'wi-?fi'
+3a:00.0 Network controller: Intel Corporation Wi-Fi 6 AX200 (rev 1a)
 ```
-Then, go to vendor's homepage and download firmware related to your device. My device is Intel® Wireless-AC 9560, the firmware of which can be found from [intel](https://www.intel.com/content/www/us/en/support/articles/000005511/network-and-i-o/wireless-networking.html).
+
+Then, go to vendor's homepage and download firmware related to your device. My device is Intel® Wi-Fi 6 AX200 160MHz, the firmware of which can be found from [intel](https://www.intel.com/content/www/us/en/support/articles/000005511/network-and-i-o/wireless-networking.html).
 
 Further, if want to check network related
 ```Bash
