@@ -37,9 +37,14 @@ see [kernel doc](https://www.kernel.org/doc/html/v4.16/process/maintainer-pgp-gu
 
 
 ### Install Debian 10
+
+Before you start to install debian, I suggest you to choose a relatively well-supported commputer by the debian community or see other release such as Ubuntu. It will absolutely get you rid of many uneccessary faults and errors.
+
+Based on my personal experience, I recommend Dell XPS 15. Here are some infos you can read on this [topic](https://wiki.debian.org/InstallingDebianOn).
+
 1. Make a free partition for Debian[^1]
 
-Use Windows+R hotkey to open Run window. Then type "Diskmgmt.msc" and click "OK" or hit "Enter" key.
+Use Windows+R hotkey to open Run window. Then type "Diskmgmt.msc" and click "OK" or hit "Enter" key. Based on my personal experience, I recommend to assign 150G free space at lease, maybe 200G is better. Because the kernel project is big, you may have multiple images in your system. I used to have memory shortage warning when I assign 100G space for debian.
 
 2. Download Debian 10 from debian.org
 
@@ -49,43 +54,39 @@ Here I choose Debian testing distribution from [debian.org](https://cdimage.debi
 
 You need at lease 4GB for 32-bit or 8GB for 64-bit system on USB. Here I choose [rufus](https://rufus.ie) instead of [UNetbootin](https://unetbootin.github.io) to create a bootable use for its speed and easy of use. 
 
-4. Switch to Boot from the USB stick[^4]
+4. [Do important settings in BIOS](https://wiki.archlinux.org/index.php/Dell_XPS_15_7590)
 
-Restart your computer and press a special function key (usually F10, F12 or F9 etc, depending on the vendor specifications, Here mine is F10).
+First, restart your computer and press a special function key (usually F10, F12 or F9 etc, depending on the vendor specifications, Here mine is F2 on XPS 15) to enter in BIOS.
+
+Second, under 'System Configuration', change the SATA Mode from the default "RAID" to "AHCI". This will allow Linux to detect the NVME SSD.
+
+Third, under 'POST Behaviour', change "Fastboot" to "Thorough". This prevents intermittent boot failures.
 
 5. Install Debian
 
 It's the simplest part.
 
-6. Setup the update repo of apt
+6. Fix windows problem
+
+After finishing the above operations, I have installed Debian successfully. However, when I switch to windows, I get below issue:
+
+> inaccessible boot device (Windows blue screen), followed by BitLocker recovery key prompt that leads to system repair that fails.
+
+Follow this [guide](https://triplescomputers.com/blog/uncategorized/solution-switch-windows-10-from-raidide-to-ahci-operation/) to close your safeboot.
+
+7. Setup the update repo of apt
 
 It's caused by sources.list probelm. Revise your source as [this manual](http://forums.debian.net/viewtopic.php?f=5&t=143325) does. The nearest ftp server of Debian can be found [here](https://www.debian.org/mirror/list).
-```bash
+```Bash
 sudo vi /etc/apt/sources.list
 deb http://ftp2.cn.debian.org/debian/ testing main contrib non-free
 deb http://ftp2.cn.debian.org/debian/ testing-updates main contrib non-free
 ```
 
-7. Solve possible missing firmware for non-free module
+8. Solve possible missing firmwares non-free module
 
 ```Bash
 sudo apt-get install firmware-linux-nonfree
-```
-This is enough for most module.
-
-8. Solve missing non-free firmwares for r8169
-
-Install realtek fireware firmware first, it will fix most of missing problems.
-```Bash
-sudo apt-get install firmware-realtek
-```
-
-After doing this, rtl8125a-3.fw and rtl8168fp-3.fw are still missing. This [site](http://anduin.linuxfromscratch.org/sources/linux-firmware/rtl_nic/) provides a list of firmwares related to this problem.
-
-For rtl8125a-3.fw, you can also get it in this [way](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=947356):
-```Bash
-root# cd /lib/firmware/rtl_nic
-root# wget https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/plain/rtl_nic/rtl8125a-3.fw
 ```
 
 ### Install other useful tools
@@ -321,7 +322,7 @@ see [this](https://www.cyberciti.biz/faq/linux-list-network-cards-command/) for 
 3. `sudo` problem
 
 Add the user to the [sudo](https://askubuntu.com/questions/7477/how-can-i-add-a-new-user-as-sudoer-using-the-command-line) group.
-```bash
+```Bash
 /sbin/usermod -aG sudo mu
 ```
 
