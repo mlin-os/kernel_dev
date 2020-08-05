@@ -25,8 +25,6 @@ Here are answers copied from Quora:
 
 ### Problems unsolved
 
-1. Fix acpi error
-
 2. Download the latest kernel directly from [github](https://github.com/torvalds/linux.git) failed
 
 3. More efficiently use of vim
@@ -76,7 +74,7 @@ Follow this [guide](https://triplescomputers.com/blog/uncategorized/solution-swi
 
 7. Setup the update repo of apt
 
-It's caused by sources.list probelm. Revise your source as [this manual](http://forums.debian.net/viewtopic.php?f=5&t=143325) does. The nearest ftp server of Debian can be found [here](https://www.debian.org/mirror/list).
+It's caused by sources.list problem. Revise your source as [this manual](http://forums.debian.net/viewtopic.php?f=5&t=143325) does. The nearest ftp server of Debian can be found [here](https://www.debian.org/mirror/list).
 ```Bash
 sudo vi /etc/apt/sources.list
 deb http://ftp2.cn.debian.org/debian/ testing main contrib non-free
@@ -414,6 +412,7 @@ rm -f /path/to/Outline-Client.AppImage
 | 2020/05/06 | Get config file of your current running kernel;                                                                             |
 | 2020/05/12 | Update vim plugins recommendation list;                                                                                     |
 | 2020/05/21 | Replace current kernel using source code distributed from www.kernel.org                                                    |
+| 2020/08/31 | Switch to Dell XPS 15 and redo above works                                                                                  |
 
 ### Reference
 [^1]:https://www.diskpart.com/windows-10/windows-10-disk-management-0528.html
