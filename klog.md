@@ -36,13 +36,13 @@ see [kernel doc](https://www.kernel.org/doc/html/v4.16/process/maintainer-pgp-gu
 
 ### Install Debian 10
 
-Before you start to install debian, I suggest you to choose a relatively well-supported commputer by the debian community or see other release such as Ubuntu. It will absolutely get you rid of many uneccessary faults and errors.
+Before you start to install debian, I suggest you to choose a relatively well-supported computer by the debian community or see other release such as Ubuntu. It will absolutely get you rid of many uneccessary faults and errors.
 
 Based on my personal experience, I recommend Dell XPS 15. Here are some infos you can read on this [topic](https://wiki.debian.org/InstallingDebianOn).
 
 1. Make a free partition for Debian[^1]
 
-Use Windows+R hotkey to open Run window. Then type "Diskmgmt.msc" and click "OK" or hit "Enter" key. Based on my personal experience, I recommend to assign 150G free space at lease, maybe 200G is better. Because the kernel project is big, you may have multiple images in your system. I used to have memory shortage warning when I assign 100G space for debian.
+Use Windows+R hotkey to open Run window. Then type "Diskmgmt.msc" and click "OK" or hit "Enter" key. Based on my personal experience, I recommend to assign 150G free space at least, maybe 200G is better (I assign 250G instead). Because the kernel project is big, you may have multiple images in your system. I used to have memory shortage warning when I assign 100G space for debian.
 
 2. Download Debian 10 from debian.org
 
