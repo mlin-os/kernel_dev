@@ -162,7 +162,7 @@ exiftool -all:all= XXX.pdf
 
 6. Install libpinyin
 
-Here I choose English as the system default language, so I need to install chinese input method. Because sougoupinyin need qt4 which does not exist in the latest debian system, I choose libpinyin instead as [debian wiki](https://wiki.debian.org/gnome-chinese-input) suggested..
+Here I choose English as the system default language, so I need to install chinese input method. Because sougoupinyin need qt4 which does not exist in the latest debian system, I choose libpinyin instead as [debian wiki](https://wiki.debian.org/gnome-chinese-input) suggested.
 
 First, add chinese locales support:
 ```Bash
@@ -175,7 +175,7 @@ Second, install fcitx and libpinyin
 sudo apt-get install fcitx fcitx-libpinyin
 ```
 
-Third, config fcitx, choose fcitx in
+Third, config fcitx, choose fcitx method in
 ```Bash
 im-config
 ```
