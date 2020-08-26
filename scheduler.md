@@ -5,7 +5,7 @@
 
 ### Question list
 
-1. scheduler type
+1. io scheduler type
 
 ```Bash
 more /sys/block/sdX/queue/scheduler
@@ -49,6 +49,10 @@ A few comparisons of latency and throughput of these options can be found in [th
 cat /proc/sys/kernel/sched_min_granularity_ns
 30000000
 ```
+
+3. [what's the difference between process scheduler and IO scheduler](https://unix.stackexchange.com/questions/199265/relationship-between-io-scheduler-and-cpu-process-scheduler)?
+
+> They schedule different shared resources. IO scheduler orders the requests going to the disks, and CPU scheduler schedules the 'requests' to the CPU.
 
 ### Comletely fair scheduler (CFS)
 

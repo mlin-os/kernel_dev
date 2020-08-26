@@ -27,3 +27,17 @@ https://github.com/junegunn/vim-plug/issues/752
 #### Learn vimscript
 
 Here are some basic instuctions of [vimscript](https://learnvimscriptthehardway.stevelosh.com/).
+
+### Tricks
+
+1. How to reduce multiple blank lines to a single blank?
+
+The [first way](https://unix.stackexchange.com/questions/12812/replacing-multiple-blank-lines-with-a-single-blank-line-in-vim-sed) is:
+```Vim
+:%!cat -s
+```
+
+The [second way](https://stackoverflow.com/questions/3032030/how-does-g-j-reduce-multiple-blank-lines-to-a-single-blank-work-in-vi) is:
+```Vim
+g/^$/,/./-j
+```
