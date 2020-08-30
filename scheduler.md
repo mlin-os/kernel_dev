@@ -62,7 +62,7 @@ Linux is known as a server operating system at the beginning and as the time goe
 
 2. Efficiency
 
-Efficiency is an important goal of Linux scheduler, which means it tries to have as much treal work as possible to be done while staying within the restraints of other requirements. Generally, since context switching is expensive, allowing tasks to run for longer periods of time increases efficiency.
+Efficiency is an important goal of Linux scheduler, which means it tries to have as much real work as possible to be done while staying within the restraints of other requirements. Generally, since context switching is expensive, allowing tasks to run for longer periods of time increases efficiency.
 
 3. Interactivity
 
