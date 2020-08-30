@@ -13,6 +13,10 @@ Here are answers copied from Quora:
 1. [FirstKernelPatch](https://kernelnewbies.org/FirstKernelPatch)
 2. [get stable kernel source code](https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/)
 
+#### Reading List
+
+1. [Understanding Linux Kernel Stack](https://wenboshen.org/posts/2015-12-18-kernel-stack.html)
+
 ### Tasks
 - [x] Install Linux;
 - [x] Setup environment for kernel development;
