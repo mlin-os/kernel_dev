@@ -317,6 +317,19 @@ tar xaf linux-5.6.14.tar.xz
 
 The remain tasks are the same as building debian kernel.
 
+#### The other way to build kernel
+
+see [this guide](https://kernelnewbies.org/OutreachyfirstpatchSetup?action=show&redirect=OPWfirstpatchSetup) from kernelnewbies.org.
+
+#### Enable KDB tool
+
+1. the relationship of KGDB and KDB
+
+> They are two different debugger front ends.
+> Kdb is simplistic shell-style interface which you can use on a system console with a ekyboard or serial console. Kdb is not a source lvel debugger.
+> Kgdb is intended to be used as a source level debugger for the Linux kernel.
+> It's possible to use either of them and dynamically transit between them if you configure the kernel properly at compile and runtime.
+
 ### FAQ
 1. How to remove grub2 if remove dual system?
 
