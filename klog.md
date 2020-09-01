@@ -330,6 +330,20 @@ see [this guide](https://kernelnewbies.org/OutreachyfirstpatchSetup?action=show&
 > Kgdb is intended to be used as a source level debugger for the Linux kernel.
 > It's possible to use either of them and dynamically transit between them if you configure the kernel properly at compile and runtime.
 
+2. the configuration
+
+```config
+CONFIG_HAVE_ARCH_KGDB=y
+CONFIG_KGDB=y
+CONFIG_KGDB_SERIAL_CONSOLE=y
+# CONFIG_KGDB_TESTS is not set
+# CONFIG_KGDB_LOW_LEVEL_TRAP is not set
+CONFIG_KGDB_KDB=y
+CONFIG_KDB_DEFAULT_ENABLE=0x1
+CONFIG_KDB_KEYBOARD=y
+CONFIG_KDB_CONTINUE_CATASTROPHIC=0
+```
+
 ### FAQ
 1. How to remove grub2 if remove dual system?
 
