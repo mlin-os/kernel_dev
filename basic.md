@@ -154,3 +154,29 @@ getconf -a |grep CACHE
 
 > If you guessed right, it continues on.
 > If you guessed wrong, the captain will stop, back up, and yell at you to flip the switch. Then it can restart down the other path.
+
+17. [Linux page caches](https://www.thomas-krenn.com/en/wiki/Linux_Page_Cache_Basics)
+
+> The __Page Cache__ accelerates many accesses to files on non volatile storage. When if first reads or writes to data media, linux stores data in unused areas of memroy. If this data is read again later, it can be quickly read from this cache in memory.
+
+```Bash
+# show the memory usage
+u@ustc:~$ free -m
+              total        used        free      shared  buff/cache   available
+Mem:           7601        1572         249         356        5779        5371
+Swap:           976           0         976
+```
+
+```Bash
+# dirty pages used for writing
+mu@ustc:~$ dd if=/dev/zero of=tstfile.txt bs=1M count=10
+10+0 records in
+10+0 records out
+10485760 bytes (10 MB, 10 MiB) copied, 0.00707386 s, 1.5 GB/s
+mu@ustc:~$ cat /proc/meminfo |grep Dirty
+Dirty:               676 kB
+mu@ustc:~$ sync
+mu@ustc:~$ cat /proc/meminfo |grep Dirty
+Dirty:                 0 kB
+
+```
