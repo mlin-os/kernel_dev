@@ -180,3 +180,12 @@ mu@ustc:~$ cat /proc/meminfo |grep Dirty
 Dirty:                 0 kB
 
 ```
+
+18. [Memory barrier, compiler barrier, volatile, out-of-order execution and cache coherency]
+
+[volatile vs. synchronization primitives(such as spinlock, memory barrier, etc.](https://www.kernel.org/doc/html/latest/process/volatile-considered-harmful.html)
+* volatile's purpose is to suppress optimization while synchroniztion primitives is to make cocurrent access to data safe. 
+> The key point to understand with regard to volatile is that its purpose is to suppress optimization, which is almost never what one really wants to do. In the kernel, one must protect shared data structures against unwanted concurrent access, which is very much a different task. The process of protecting against unwanted concurrency will also avoid almost all optimization-related problems in a more efficient way.
+
+* when volatile is used in kernel, it's mainly used for memory-mapped i/O registers.
+> The volatile storage class was originally meant for memory-mapped I/O registers. Within the kernel, register accesses, too, should be protected by locks, but one also does not want the compiler “optimizing” register accesses within a critical section. But, within the kernel, I/O memory accesses are always done through accessor functions; accessing I/O memory directly through pointers is frowned upon and does not work on all architectures. Those accessors are written to prevent unwanted optimization, so, once again, volatile is unnecessary.
