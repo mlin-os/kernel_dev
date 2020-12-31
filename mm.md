@@ -47,6 +47,10 @@
 > For x64 architecutre, it can fully map and handle 64-bits of memory, thus, x64 has no ZONE_HIGHMEM.
 > 
 
+#### Memory Address Space
+
+![memory_address_space](./figures/memory_address_space.png)
+
 #### Getting Pages
 Flag | Description
 -------|-----------------
