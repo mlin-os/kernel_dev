@@ -79,5 +79,7 @@ Flag | Description
 > Each DRAM chip is connected to some circuitry, known as the _memory controller_, that can transer _w_ bits at a time to and from each DRAM chip. To read the contents of supercell (i, j), the memory controller sends the row address _i_ (called a _RAS_, _row access strobe request_) to the DRAM, followed by the column address _j_ (called a _CAS_, _column access strobe request_). RAS and CAS requests share the same DRAM address pins.
 > DRAM chips are packaged in _memory modules_ that plug into expansion slots on the main system board (mortherboard).
 
+### [Memory mapping](https://linux-kernel-labs.github.io/refs/heads/master/labs/memory_mapping.html)
+
 ##### Reference
 https://www.kernel.org/doc/html/v4.16/process/howto.html

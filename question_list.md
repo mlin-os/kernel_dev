@@ -21,3 +21,13 @@
 7. what's the differencies between trap, exception and interrupt?
 
 __idtentry__ macro performs the preparations required before an exception handler will be called, the __interrupt__ macro performs the preparations required before an interrupt handler will be called and the _entry_SYSCALL_64_ will do the preparations required before a system call handler will be executed.
+
+8. how to cooperate shared data between different service or "smaller" code path?
+
+### Latest topics
+
+1. what's memory mapping and how does it work?
+
+see [this manual](https://linux-kernel-labs.github.io/refs/heads/master/labs/memory_mapping.html) for basic concepts.
+
+2. what's vfs and how does it work?

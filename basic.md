@@ -167,6 +167,22 @@ Mem:           7601        1572         249         356        5779        5371
 Swap:           976           0         976
 ```
 
+> If data is written, it's first written to the Page Cache and managed as one of its _dirty pages_. _Dirty_ means that the data is stored in the Page Cache, but needs to be written to the underlying storage device first. The content of these _dirty pages_ is periodically transferred to the nderlying storage devices.
+> File blocks are written to the Page Cache not just during writing, but also when reading files. Once after the other, the second access will be quicker, because the file blocks come directly from the Page Cache in memory and do not have to be read from the hard disk again.
+```Bash
+user@adminpc:~$ free -m
+             total       used       free     shared    buffers     cached
+Mem:          3884       1812       2071          0         60       1328
+-/+ buffers/cache:        424       3459
+Swap:         1956          0       1956
+user@adminpc:~$ vlc video.avi
+[...]
+user@adminpc:~$ free -m
+             total       used       free     shared    buffers     cached
+Mem:          3884       2056       1827          0         60       1566
+-/+ buffers/cache:        429       3454
+Swap:         1956          0       1956
+```
 ```Bash
 # dirty pages used for writing
 mu@ustc:~$ dd if=/dev/zero of=tstfile.txt bs=1M count=10
@@ -178,7 +194,6 @@ Dirty:               676 kB
 mu@ustc:~$ sync
 mu@ustc:~$ cat /proc/meminfo |grep Dirty
 Dirty:                 0 kB
-
 ```
 
 18. [Memory barrier, compiler barrier, volatile, out-of-order execution and cache coherency]
