@@ -122,6 +122,13 @@ RIP  [<ffffffffa03e1012>] my_oops_init+0x12/0x21 [oops]
 ```
 The line 6 in oops.c is actually the error line. That's it!
 
+##### Questions remained
+
+1. What's the struct of ko file, Does the symbol in it need relocation?
+2. Can the ko be loaded into any position in the address space, i.e. posistion-independent?
+3. What's the purpose of obtating the start of `.text` of module?
+
+#### Some useful commands
 ```Bash
 cat /proc/modules
 cat /sys/module/XXX/section/.init.text
