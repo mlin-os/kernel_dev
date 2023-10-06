@@ -1,16 +1,19 @@
+[TOC]
+
 # spinlock
+
 ## Introduction
 ## The evoluation of the implementation of spinlock
 
 spinlock在同步机制中虽然比较简单，但是也经历过多次迭代，从而逐步提升其性能。主要的阶段可以归纳如下：
 
-| Stage            | Implementation                                               | Adavantages and Disadvantages                                |
-| ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| 单整型变量的自旋 | 基于Compare and Swap、Test and Set等原子指令                 | 1. 实现简单，2. 不保证公平性，先到并不一定先获得，3. 存在cache-line bounce问题。 |
-| ticket spinlocks | 队列化，类似银行柜台叫号，只有柜台号码与客户号码一致时才被服务 | 1. 解决公平性问题，2. 存在cache-line bounce问题。            |
-| MCS locks        | 本地化，实现上是单链表，自旋于本地变量                       | 1. 解决cache-line bounce问题，2. 但锁头结构体增大，相比ticket spinlocks，从4字节增加到16字节。 |
-| qspinlocks       | 基于MCS locks，压缩队尾节点信息，保持锁头大小为4字节         | 1. 解决锁头增大问题，2. 对少竞争场景并不建立MCS队列。        |
-| ...              | ...                                                          | ...                                                          |
+| Stage            | Implementation                                                 | Adavantages and Disadvantages                                                                    |
+| ---------------- | ------------------------------------------------------------   | ------------------------------------------------------------                                     |
+| 单整型变量的自旋 | 基于Compare and Swap、Test and Set等原子指令                   | 1. 实现简单，2. 不保证公平性，先到并不一定先获得，3. 存在cache-line bounce问题。                 |
+| ticket spinlocks | 队列化，类似银行柜台叫号，只有柜台号码与客户号码一致时才被服务 | 1. 解决公平性问题，2. 存在cache-line bounce问题。                                                |
+| MCS locks        | 本地化，实现上是单链表，自旋于本地变量                         | 1. 解决cache-line bounce问题，2. 但“锁头”结构体增大，相比ticket spinlocks，从4字节增加到16字节。 |
+| qspinlocks       | 基于MCS locks，压缩队尾节点信息，保持锁头大小为4字节           | 1. 解决“锁头”增大问题，2. 对少竞争场景并不建立MCS队列。                                          |
+| ...              | ...                                                            | ...                                                                                              |
 
 
 
@@ -135,17 +138,134 @@ spin_unlock:
 显然，该方式非常简单，容易理解。但是它也有两个比较大的缺陷：
 
 1. 不保证公平性，所有参与自旋的线程谁先将公共变量置为加锁状态谁得到锁，而非谁先到先获取锁，极端情况可能出现长时间获取不到锁。
-2. 存在cache-line bounce问题，高竞争下，性能大幅降低。
+2. 存在cache-line bounce问题，高竞争下，因cache一致性性能大幅降低。
 
 ### ticket spinlock
 
-为了解决公平性问题，思路就是队列化。
+为了解决公平性问题，思路就是队列化。ticket spinlock采用了类似银行办理业务的做法，每个客户先获取一个号码，号码保证唯一性，当客户持有的号码与柜台正在服务的号码相等时，该客户得以办理自己的业务。
+
+当前在armv6平台上，是ticket spinlock的实现。
+#### The definition of `arch_spinlock_t`
+
+```c
+// arch/arm/include/asm/spinlock_types.h
+
+#define TICKET_SHIFT    16
+
+typedef struct {
+        union {
+                u32 slock;
+                struct __raw_tickets {
+#ifdef __ARMEB__
+                        u16 next;
+                        u16 owner;
+#else
+                        u16 owner;
+                        u16 next;
+#endif
+                } tickets;
+        };
+} arch_spinlock_t;
+```
+
+可以看到它把4字节的_slock_分成了2字节的_next_和2字节的_owner_域，上述的**\_\_ARMEB\_\_**表示ARM EABI Big-endian，表示大端字节序，详情参考该[解答](https://www.oschina.net/question/565065_113329)。
+
+#### The implementation of lock operation
+
+```c
+// arch/arm/include/asm/spinlock.h
+static inline void arch_spin_lock(arch_spinlock_t *lock)
+{
+        unsigned long tmp;
+        u32 newval;
+        arch_spinlock_t lockval;
+
+        prefetchw(&lock->slock); // 预取到cache中
+        /* part 1 */
+        __asm__ __volatile__(
+"1:     ldrex   %0, [%3]\n"
+"       add     %1, %0, %4\n"
+"       strex   %2, %1, [%3]\n"
+"       teq     %2, #0\n"
+"       bne     1b"
+        : "=&r" (lockval), "=&r" (newval), "=&r" (tmp)
+        : "r" (&lock->slock), "I" (1 << TICKET_SHIFT)
+        : "cc");
+
+        /* part 2 */
+        while (lockval.tickets.next != lockval.tickets.owner) {
+                wfe(); // 用于降低busy wait的时候的功耗
+                lockval.tickets.owner = READ_ONCE(lock->tickets.owner);
+        }
+
+        smp_mb();
+}
+```
+
+相比前一种方式要复杂很多，它的主要部分可以分成2部分，
+
+* 嵌入式汇编部分（part 1），主要是“原子地”将当前共享的_lock_保存到局部变量_lockval_中，并对_lock->tickets.next_加一，类比于将当前号码给新来的客户，并生成新号码等待下一位客户。
+* while循环部分（part 2），主要是不断比较共享的_lock->tickets.owner_与局部变量_lockval.tickets.owner_是否一样，直到相等为止，类比于检查正在服务的号码是否跟自己持有的号码一致，如果不一样则继续检查。
+
+这里，共享变量中_lock->tickets.owner_充当的是正在服务的号码，_lock->tickets.next_充当的是下一个新号码，本地变量中_lockval.tickets.owner_的用途是同步正在服务的号码，_lockval.tickets.next_充当的是客户持有的号码。
+
+另外，下面是对于part 1的嵌入式汇编的补充信息，解释为何代表的是上述意思，不感兴趣的可以跳过该部分。它是完成了以下5句汇编语句：
+
+```c
+        __asm__ __volatile__(
+"1:     ldrex   %0, [%3]\n"
+"       add     %1, %0, %4\n"
+"       strex   %2, %1, [%3]\n"
+"       teq     %2, #0\n"
+"       bne     1b"
+        : "=&r" (lockval), "=&r" (newval), "=&r" (tmp)
+        : "r" (&lock->slock), "I" (1 << TICKET_SHIFT)
+        : "cc");
+```
+
+根据嵌入式汇编语法，%0 -> _lockval_，%1 -> _newval_，%2 -> _tmp_，%3 -> _&lock->slock_，%4 -> _1 << TICKET_SHIFT_。**ldrex**和**strex**指令分别是**ldr**和**str**指令的exclusive模式。该模式下，例如cpu A，在执行`LDREX R1, [R0]`时会将_R0_设置成exclusive monitor状态（个人理解标记了当前cpu）。如果在执行`STREX R2, R1, [R0]`时，仍然是cpu A独占的话，则会将_R1_的值保存到_R0_代表的地址上，并返回0保存在_R2_（表示成功），如果不是cpu A独占，例如cpu B也执行了LDREX R1, [R0]命令，此时会是cpu B独占状态，则cpu A的`STREX R2, R1, [R0]`命令失败，返回1保存在R2（表示失败），详细请阅读[arm developer](https://developer.arm.com/documentation/dht0008/a/ch01s02s01)，命令的关键解释如下：
+
+> The LDREX instruction loads a word from memory, initializing the state of theexclusive monitor(s) to track the synchronization operation.
+>
+> The STREX instruction performs a conditional store of a word to memory. If theexclusive monitor(s) permit the store, the operation updates the memory location andreturns the value 0 in the destination register, indicating that the operation succeeded.If the exclusive monitor(s) do not permit the store, the operation does not update thememory location and returns the value 1 in the destination register.
+
+基于以上补充信息，我们可以看出每句的汇编意思是，
+
+* 第1行，将_lock->slock_的值拷贝到局部变量_lockval_中，即`lockval = lock->slock`,并设置exclusive monitor状态，
+* 第2行，将_lockval_加1 << 16保存到_newval_中，1<<16对应next域加1，也即`newval.tickets.next= lockval.tickets.next + 1`，
+* 第3行，尝试将_newval_写回_lock->slock_，如果仍然是自己独占，则执行成功，并将0写入_tmp_，如果不是自己独占，则不执行写回，将1写入_tmp，即`lock->slock = newval ? 0 : 1`，
+* 第4行，检验tmp的值是否0，
+* 第5行，如果不相等，则跳转到最近的“1”标签，方向是backward，即第一行，重试整个过程。
+
+结合起来即“原子地”将当前共享的_lock_保存到局部变量_lockval_中，并对_lock->tickets.next_加一。
+
+#### The implementation of unlock operation
+
+```c
+// arch/arm/include/asm/spinlock.h
+static inline void arch_spin_unlock(arch_spinlock_t *lock)
+{
+        smp_mb();
+        lock->tickets.owner++;
+        dsb_sev();
+}
+```
+
+解锁过程就比较简单了，即将正在服务的号码_lock->tickets.owner_更新到下一个即可。
+
+#### Advantages and Disadvantages
+
+通过队列化，我们解决了公平性问题，但是因为所有等待着仍然在轮训
+
 
 ### MCS locks
 ### qspinlocks
 ### more ...
 ## History
-Date | Adance
-----|-----
-2023/10/03 | 完成基于`cas`指令小节 
-2023/10/04 | 补充test and set内容 
+
+| Date       | Adance                 |
+| ---------- | -----                  |
+| 2023/10/03 | 完成基于`cas`指令小节  |
+| 2023/10/04 | 补充test and set内容   |
+| 2023/10/05 | 补充spinlock演进的概要 |
+| 2023/10/06 | 补充ticket locks小姐   |
