@@ -209,7 +209,7 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 
 这里，共享变量中_lock->tickets.owner_充当的是正在服务的号码，_lock->tickets.next_充当的是下一个新号码，本地变量中_lockval.tickets.owner_的用途是同步正在服务的号码，_lockval.tickets.next_充当的是客户持有的号码。
 
-另外，下面是对于part 1的嵌入式汇编的补充信息，解释为何代表的是上述意思，不感兴趣的可以跳过该部分。它是完成了以下5句汇编语句：
+另外，下面是对于part 1的嵌入式汇编的补充信息，解释为何代表的是上述意思，不感兴趣的可以跳过该部分。我们来仔细看看以下5句汇编语句：
 
 ```c
         __asm__ __volatile__(
@@ -255,17 +255,27 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 
 #### Advantages and Disadvantages
 
-通过队列化，我们解决了公平性问题，但是因为所有等待着仍然在轮训
-
+通过队列化，我们解决了公平性问题，但是因为所有等待者仍然在轮询共享变量_lock->slock_，存在cache-line bounce问题，下一小节，我们看是linux社区是如何解决该问题的。
 
 ### MCS locks
+
+解决cache-line bounce问题的思路是本地化，每一个申请者轮询局部变量，使用本地cache，从而避免轮询共享的变量。
+
+#### What is cache-line bounce?
+
+从[quora](https://www.quora.com/What-is-cache-line-bouncing-How-may-a-spinlock-trigger-this-frequently)上的回答可以看到，当cpu访问数据的时候，需要先从memory中将数据加载到自己的cache中，然后再从cache中读取数据。当访问共享的数据时，例如A和B两个cpu分别将某个共享数据加入自己的L1 cache，当A修改该数据时，此时会做cache一致性操作，将该数据写回memory，然后再同步到cpu B的L1 cache，整个过程中，我们可以看到共享数据在不同cpu的cache-line上“弹来弹去”，这正是cache-line bounce名字的来历。我们知道从memory中读写数据是比较慢的，而从cache中读写数据比较快，因此，发生cache-line bounce时会导致性能下降。另外，如果访问共享数据的cpu比较多的时候，每一次数据修改都需要同步给所有的核，性能会进一步恶化。
+
+具体到spinlock场景下，锁是被不同申请者访问的，共享是存在的，似乎cache-line bounce是在所难免的，但是是不是每一次修改都需要同步给所有申请者呢？仔细分析，任意时刻只有一个cpu可以持有该锁，我们对锁做出的修改，只用同步给下一个获得者即可，这就是MCS locks的做法。
+
+
+
 ### qspinlocks
 ### more ...
 ## History
 
 | Date       | Adance                 |
-| ---------- | -----                  |
+| ---------- | ---------------------- |
 | 2023/10/03 | 完成基于`cas`指令小节  |
 | 2023/10/04 | 补充test and set内容   |
 | 2023/10/05 | 补充spinlock演进的概要 |
-| 2023/10/06 | 补充ticket locks小姐   |
+| 2023/10/06 | 补充ticket locks小节   |
