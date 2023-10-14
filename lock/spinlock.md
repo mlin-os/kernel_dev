@@ -3,6 +3,17 @@
 # spinlock
 
 ## Introduction
+
+以下摘自[蜗窝科技](http://www.wowotech.net/kernel_synchronization/spinlock.html)，是对spinlock特点的很好总结：
+
+> （1）spin lock是一种死等的锁机制。当发生访问资源冲突的时候，可以有两个选择：一个是死等，一个是挂起当前进程，调度其他进程执行。spin lock是一种死等的机制，当前的执行thread会不断的重新尝试直到获取锁进入临界区。
+>
+> （2）只允许一个thread进入。semaphore可以允许多个thread进入，spin lock不行，一次只能有一个thread获取锁并进入临界区，其他的thread都是在门口不断的尝试。
+>
+> （3）执行时间短。由于spin lock死等这种特性，因此它使用在那些代码不是非常复杂的临界区（当然也不能太简单，否则使用原子操作或者其他适用简单场景的同步机制就OK了），如果临界区执行时间太长，那么不断在临界区门口“死等”的那些thread是多么的浪费CPU啊（当然，现代CPU的设计都会考虑同步原语的实现，例如ARM提供了WFE和SEV这样的类似指令，避免CPU进入busy loop的悲惨境地）
+>
+> （4）可以在中断上下文执行。由于不睡眠，因此spin lock可以在中断上下文中适用。
+
 ## The evoluation of the implementation of spinlock
 
 spinlock在同步机制中相对比较简单，但是也经历过多次迭代，从而逐步提升其性能。主要的阶段可以归纳如下：
@@ -12,11 +23,11 @@ spinlock在同步机制中相对比较简单，但是也经历过多次迭代，
 | 单整型变量的自旋 | 基于Compare and Swap、Test and Set等原子指令                 | 1. 实现简单，2. 不保证公平性，先到并不一定先获得，3. 存在cache-line bounce问题。 |
 | ticket spinlocks | 队列化，类似银行柜台叫号，只有柜台号码与客户号码一致时才被服务 | 1. 解决公平性问题，2. 存在cache-line bounce问题。            |
 | MCS locks        | 本地化，实现上是单链表，自旋于本地变量                       | 1. 解决cache-line bounce问题，2. 但“锁头”结构体增大，相比ticket spinlocks，从4字节增加到16字节。 |
-| qspinlocks       | 基于MCS locks，压缩队尾节点信息，保持锁头大小为4字节         | 1. 解决“锁头”增大问题，2. 对少竞争场景并不建立MCS队列。      |
+| qspinlocks       | 基于MCS locks，压缩队尾节点信息，保持"锁头"大小为4字节       | 1. 解决“锁头”增大问题，2. 对少竞争场景并不建立MCS队列。      |
 | pvqspinlocks     | 针对虚拟化场景，本文暂不涉及                                 | -                                                            |
 | ...              | ...                                                          | ...                                                          |
 
-这里“锁头”指的是暴露给使用者的锁的结构体部分，即**arch_spinlock_t**部分。
+这里“锁头”指的是暴露给使用者的锁的结构体部分，即**arch_spinlock_t**部分，同时它也是单链表的头节点，故称”锁头“。
 
 ### Spin on an integer
 
@@ -141,7 +152,7 @@ spin_unlock:
 
 显然，该方式非常简单，容易理解。但是它也有两个比较大的缺陷：
 
-1. 不保证公平性，所有参与自旋的线程谁先将公共变量置为加锁状态谁得到锁，而非谁先到先获取锁，极端情况可能出现长时间获取不到锁。
+1. 不保证公平性，所有参与自旋的线程谁先将公共变量置为加锁状态谁得到锁，而非谁先到先获取锁，极端情况可能出现长时间获取不到锁。另外，情况可能更糟糕的是，理论上所有参与的竞争者获得锁的概率应该是一样的，但是在NUMA架构上，由于访问不同内存的速度不一样，与spinlock在同一个node上的cpu会比其他node上cpu更高概率获得锁，导致更严重的公平性问题，可以参考[US7487279](https://patents.google.com/patent/US7487279)。
 2. 存在cache-line bounce问题，高竞争下，因cache一致性性能大幅降低。
 
 ### ticket spinlock
@@ -233,7 +244,7 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 >
 > The STREX instruction performs a conditional store of a word to memory. If theexclusive monitor(s) permit the store, the operation updates the memory location andreturns the value 0 in the destination register, indicating that the operation succeeded.If the exclusive monitor(s) do not permit the store, the operation does not update thememory location and returns the value 1 in the destination register.
 
-基于以上补充信息，我们可以看出每句的汇编意思是，
+基于以上补充信息，我们可以看出每句的汇编意思是：
 
 * 第1行，将_lock->slock_的值拷贝到局部变量_lockval_中，即`lockval = lock->slock`,并设置exclusive monitor状态，
 * 第2行，将_lockval_加1 << 16保存到_newval_中，1<<16对应next域加1，也即`newval.tickets.next= lockval.tickets.next + 1`，
@@ -316,7 +327,8 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
 }
 ```
 
-以上是加锁的实现，整个过程可以用以下流程图表示：
+以上是加锁过程的实现，核心的是`xchg`函数，
+整个过程可以用以下流程图表示：
 
 ![mcs_spin_lock](../figures/mcs_spin_lock.jpg)
 
@@ -333,3 +345,5 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
 | 2023/10/04 | 补充test and set内容   |
 | 2023/10/05 | 补充spinlock演进的概要 |
 | 2023/10/06 | 补充ticket locks小节   |
+| 2023/10/14 | 补充mcs locks          |
+| 2023/10/14 | 补充qspinlocks         |
