@@ -1,6 +1,6 @@
 [TOC]
 
-# spinlock
+# Spinlock's Mechanism and Implementation
 
 ## Introduction
 
@@ -14,9 +14,15 @@
 >
 > （4）可以在中断上下文执行。由于不睡眠，因此spin lock可以在中断上下文中适用。
 
+## The interface of spinlock
+
+
+
+
+
 ## The evoluation of the implementation of spinlock
 
-spinlock在同步机制中相对比较简单，但是也经历过多次迭代，从而逐步提升其性能。主要的阶段可以归纳如下：
+spinlock在同步机制中相对比较简单，但是也经历过多次迭代，从而逐步提升其性能，其主要阶段可以归纳如下：
 
 | Stage            | Implementation                                               | Adavantages and Disadvantages                                |
 | ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -268,7 +274,7 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 
 解锁过程就比较简单了，即将正在服务的号码_lock->tickets.owner_更新到下一个即可。
 
-#### Advantages and Disadvantages
+#### The advantages and disadvantages
 
 通过队列化，我们解决了公平性问题，但是因为所有等待者仍然在轮询共享变量_lock->slock_，存在cache-line bounce问题，下一小节，我们看是linux社区是如何解决该问题的。
 
@@ -276,7 +282,7 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 
 解决cache-line bounce问题的核心思路是本地化，每一个申请者轮询局部变量，使用本地cache，从而避免轮询共享的变量。
 
-#### What is cache-line bounce?
+#### What is cache-line bounce issue?
 
 在说明MCS locks实现前，我们首先需要明白什么是cache-line bounce。从[quora](https://www.quora.com/What-is-cache-line-bouncing-How-may-a-spinlock-trigger-this-frequently)上的回答可以看到，当cpu访问数据的时候，需要先从memory中将数据加载到自己的cache中，然后再从cache中读取数据。当访问共享的数据时，例如A和B两个cpu分别将某个共享数据加入自己的L1 cache，当A修改该数据时，此时会做cache一致性操作，将该数据写回memory，然后再同步到cpu B的L1 cache，整个过程中，我们可以看到共享数据在不同cpu的cache-line上“弹来弹去”，这正是cache-line bounce名字的来历。我们知道从memory中读写数据是比较慢的，而从cache中读写数据比较快，因此，发生cache-line bounce时会导致性能下降。另外，如果访问共享数据的cpu比较多的时候，每一次数据修改都需要同步给所有的核，性能会进一步恶化。
 
@@ -304,6 +310,7 @@ struct mcs_spinlock {
 #### The lock operation
 
 ```c
+// kernel/locking/mcs_spinlock.h
 static inline
 void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
 {
@@ -327,16 +334,93 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
 }
 ```
 
-以上是加锁过程的实现，核心的是`xchg`函数，
-整个过程可以用以下流程图表示：
+以上是加锁过程的实现，_lock_是“锁头”节点的地址，_node_是待插入的新mcs节点。整个函数的核心是`xchg`函数，作用是“原子地”将_node_填入_lock_指向的地址，并交换出其旧址保存在_prev_中。通过该操作，同时完成了对“锁头”的更新，使其指向新节点，并确定了其前继。此时，链表节点的前后关系是可以保证的，因此，建立前继和新节点的链接关系（step 3）便可以异步完成，并不需要放在step 2同一个原子操作中。整个过程可以用以下流程图表示：
 
 ![mcs_spin_lock](../figures/mcs_spin_lock.jpg)
 
+可以看到，通过单链表构成了队列，保证了公平性，每个mcs节点轮询自己mcs节点的_locked_域，消除了cache-line bounce问题。
+
 #### The unlock operation
+
+```c
+// kernel/locking/mcs_spinlock.h
+static inline
+void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+{
+        struct mcs_spinlock *next = READ_ONCE(node->next);
+
+        if (likely(!next)) {
+                /*
+                 * Release the lock by setting it to NULL
+                 */
+                if (likely(cmpxchg_release(lock, node, NULL) == node))
+                        return;
+                /* Wait until the next pointer is set */
+                while (!(next = READ_ONCE(node->next)))
+                        cpu_relax();
+        }
+
+        /* Pass lock to next waiter. */
+        arch_mcs_spin_unlock_contended(&next->locked);
+}
+
+```
+
+以上是解锁过程，正如上节所说，更新“锁头”节点（step 2）和建立上一节点和当前节点的连接关系（step 3）是可以异步完成的，因此需要先判断_node_next_是否是NULL，在确定是非空的时候，就可以放心地释放下一个节点。另外，`cmpxchg_release`是一个CAS操作，如果_node_与_lock_指向地址上的值一致，则将NULL填入_lock_指向的地址，并返回其旧址，即_node_，这意味着此时是mcs队列的队尾，我们可以直接放心返回。整个过程可以如下图所示：
+
+![mcs_spin_unlock](../figures/mcs_spin_unlock.jpg)
+
+#### The advantages and disadvantages
+
+正如前面所说，MCS locks保证了公平性和消除了cache-line bounce问题，那为什么当前内核并没有MCS locks的完整实现呢？原因在于，从上图可以发现，“锁头”是通过_next_域指向尾节点的，它是一个8字节指针，即便在不考虑_count_域的情况，“锁头”的大小至少为8(_next_) + 4 (_locked_) + 4 (alignment) = 16字节，对于诸如**struct task_struct**等对于大小敏感的结构体，它太大了，因此需要优化。
 
 ### qspinlocks
 
-### more ...
+qspinlocks是基于MCS locks实现的，可以看做是压缩的qspinlocks“锁头”和mcs节点构成，它主要的优化如下所示：
+
+* 给出需要的mcs节点上限，基于此我们不需要指针存储尾节点，信息得到压缩，
+* 压缩“锁头”节点，从16字节到4字节，与ticket spinlock大小保持一致，
+* 对于少量竞争场景，采用自旋变量，而不建立mcs队列，提升效率，
+* 等等。
+
+#### The max number of mcs nodes
+
+由于我们在加锁的流程中通过关抢占或者关中断等，因此保证了spinlock的嵌套不会发生，例如当前线程A在cpu 0上运行，其在进程上下文等锁a，由于关了抢占，不会出现在cpu 0上，有另一个等待线程B，不论它是否在等待锁a还是其他的锁b，但是可以出现来了一个软中断，在软中断中等待锁b。
+
+注意，在qspinlock中，只有等锁节点占用mcs节点，当前持锁节点会回收掉，这是与MCS locks的重要区别，因此，线程A持有了锁a再持有锁b，并不会增加任何mcs节点的占用（详见How does qspinlocks work？小节）。
+
+另外，部分平台，nmi中断可能会出现嵌套场景，此时会通过让新的等待着直接自旋于“锁头”来保证代码健壮性。
+
+基于以上的分析，我们所需要的mcs节点个数的上限即：cpu个数 * 上下文个数。在linux内核中，我们有task，softirq，hardirq，nmi四种上下文，这个数目远没有想象的那么多，我们不再需要通过地址来指向尾节点，而只需要cpu id和上下文 id即可，信息得到压缩。当前mcs节点如下定义：
+
+```c
+// kernel/locking/qspinlock.c
+#define MAX_NODES       4
+static DEFINE_PER_CPU_ALIGNED(struct qnode, qnodes[MAX_NODES]);
+```
+
+可以看到_qnodes_是一个percpu的变量，在每个cpu上都有一个大小为4的`struct qnode`结构体数组，该结构体的定义如下，可以看到就是mcs节点：
+
+```c
+// kernel/locking/qspinlock.c
+struct qnode {
+        struct mcs_spinlock mcs;
+#ifdef CONFIG_PARAVIRT_SPINLOCKS
+        long reserved[2];
+#endif
+};
+```
+
+#### The definition of `arch_spinlock_t`
+
+#### How does qspinlocks work?
+
+
+
+### pvqspinlocks
+
+...
+
 ## History
 
 | Date       | Adance                 |
