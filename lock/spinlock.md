@@ -391,7 +391,7 @@ qspinlocks是基于MCS locks实现的，可以看做是压缩的qspinlocks“锁
 
 另外，部分平台，nmi中断可能会出现嵌套场景，此时会通过让新的等待着直接自旋于“锁头”来保证代码健壮性。
 
-基于以上的分析，我们所需要的mcs节点个数的上限即：cpu个数 * 上下文个数。在linux内核中，我们有task，softirq，hardirq，nmi四种上下文，这个数目远没有想象的那么多，我们不再需要通过地址来指向尾节点，而只需要cpu id和上下文 id即可，信息得到压缩。当前mcs节点如下定义：
+基于以上的分析，我们所需要的mcs节点个数的上限即：cpu个数 * 上下文个数。在linux内核中，我们有**task**，**softirq**，**hardirq**，**nmi**四种上下文，这个数目远没有想象的那么多，我们不再需要通过地址来指向尾节点，而只需要_cpu id_和_context id_即可，信息得到压缩。当前mcs节点如下定义：
 
 ```c
 // kernel/locking/qspinlock.c
@@ -399,7 +399,7 @@ qspinlocks是基于MCS locks实现的，可以看做是压缩的qspinlocks“锁
 static DEFINE_PER_CPU_ALIGNED(struct qnode, qnodes[MAX_NODES]);
 ```
 
-可以看到_qnodes_是一个percpu的变量，在每个cpu上都有一个大小为4的`struct qnode`结构体数组，该结构体的定义如下，可以看到就是mcs节点：
+可以看到_qnodes_是一个percpu的变量，在每个cpu上都有一个大小为4的`struct qnode`结构体数组，可以看到该结构体就是mcs节点：
 
 ```c
 // kernel/locking/qspinlock.c
@@ -412,6 +412,60 @@ struct qnode {
 ```
 
 #### The definition of `arch_spinlock_t`
+
+“锁头”`struct qspinlock`在小端设备上定义如下：
+
+```c
+// include/asm-generic/qspinlock_types.h
+typedef struct qspinlock {                     
+        union {                                
+                atomic_t val;                                                                     
+                struct {                       
+                        u8      locked;        
+                        u8      pending;       
+                };                             
+                struct {                       
+                        u16     locked_pending;
+                        u16     tail;          
+                };                                         
+} arch_spinlock_t;                             
+```
+
+对应的结构图：
+
+![struct qspinlock](../figures/struct_qspinlock.jpg)
+
+其中，_locked_域代表当前是否加锁，占据0-7bit，本身只需要1bit，但因为对bit操作需要在字节操作基础上再做掩码操作，性能不如直接对1个byte操作，所以占据了一个字节。_pending_域代表在少量竞争下第一个等待者，占据第8bit，同样只需要1bit，基于同样的原因，占据了第二个字节。_tail_域指向mcs队列尾，由代表_context id_的_tail index_（占据16-17bit）和代表_cpu id_的_tail cpu_（占据18 - 31bit）组成。
+
+后续，我们按照原作者的四组，把_locked_，_pending_，_tail_组成三元组`(locked, pending, tail)`，讨论不同情况下是如何使用的。
+
+_tail_和_cpu id_以及_context id_的转换关系如下：
+
+```c
+// kernel/locking/qspinlock.c
+static inline __pure u32 encode_tail(int cpu, int idx)             
+{                                                                  
+        u32 tail;                                                  
+                                                                   
+        tail  = (cpu + 1) << _Q_TAIL_CPU_OFFSET;                   
+        tail |= idx << _Q_TAIL_IDX_OFFSET; /* assume < 4 */        
+                                                                   
+        return tail;                                               
+}                                                                  
+                                                                   
+static inline __pure struct mcs_spinlock *decode_tail(u32 tail)    
+{                                                                  
+        int cpu = (tail >> _Q_TAIL_CPU_OFFSET) - 1;                
+        int idx = (tail &  _Q_TAIL_IDX_MASK) >> _Q_TAIL_IDX_OFFSET;
+                                                                   
+        return per_cpu_ptr(&qnodes[idx].mcs, cpu);                 
+}                                                                  
+```
+
+非常直接明了，简单的移位操作，需要说明的有两点：
+
+* 其中_idx_代表_context id_，使用上它并没有固定的顺序，不管是哪个context，申请就加1，释放就减1。
+* 另外，或许有细心的读者发现_cpu id_域保存的并不是cpu的值，而是cpu的值加1，原因是如果直接使用cpu值，我们无法分辨`(0, 0, 0)`代表的是当前锁没有任何持有者以及等待者，还是存在3个申请者，此时1号位置（_locked_域）和2号位置(_pending_域)刚刚释放，详见后续的解释。
 
 #### How does qspinlocks work?
 
