@@ -417,18 +417,18 @@ struct qnode {
 
 ```c
 // include/asm-generic/qspinlock_types.h
-typedef struct qspinlock {                     
-        union {                                
-                atomic_t val;                                                                     
-                struct {                       
-                        u8      locked;        
-                        u8      pending;       
-                };                             
-                struct {                       
+typedef struct qspinlock {
+        union {
+                atomic_t val;
+                struct {
+                        u8      locked;
+                        u8      pending;
+                };
+                struct {
                         u16     locked_pending;
-                        u16     tail;          
-                };                                         
-} arch_spinlock_t;                             
+                        u16     tail;
+                };
+} arch_spinlock_t;
 ```
 
 对应的结构图：
@@ -437,39 +437,261 @@ typedef struct qspinlock {
 
 其中，_locked_域代表当前是否加锁，占据0-7bit，本身只需要1bit，但因为对bit操作需要在字节操作基础上再做掩码操作，性能不如直接对1个byte操作，所以占据了一个字节。_pending_域代表在少量竞争下第一个等待者，占据第8bit，同样只需要1bit，基于同样的原因，占据了第二个字节。_tail_域指向mcs队列尾，由代表_context id_的_tail index_（占据16-17bit）和代表_cpu id_的_tail cpu_（占据18 - 31bit）组成。
 
-后续，我们按照原作者的四组，把_locked_，_pending_，_tail_组成三元组`(locked, pending, tail)`，讨论不同情况下是如何使用的。
+后续，我们按照原作者的思路，把_locked_，_pending_，_tail_组成三元组`(locked, pending, tail)`，讨论不同情况下是如何使用的。
 
 _tail_和_cpu id_以及_context id_的转换关系如下：
 
 ```c
 // kernel/locking/qspinlock.c
-static inline __pure u32 encode_tail(int cpu, int idx)             
-{                                                                  
-        u32 tail;                                                  
-                                                                   
-        tail  = (cpu + 1) << _Q_TAIL_CPU_OFFSET;                   
-        tail |= idx << _Q_TAIL_IDX_OFFSET; /* assume < 4 */        
-                                                                   
-        return tail;                                               
-}                                                                  
-                                                                   
-static inline __pure struct mcs_spinlock *decode_tail(u32 tail)    
-{                                                                  
-        int cpu = (tail >> _Q_TAIL_CPU_OFFSET) - 1;                
+static inline __pure u32 encode_tail(int cpu, int idx)
+{
+        u32 tail;
+
+        tail  = (cpu + 1) << _Q_TAIL_CPU_OFFSET;
+        tail |= idx << _Q_TAIL_IDX_OFFSET; /* assume < 4 */
+
+        return tail;
+}
+
+static inline __pure struct mcs_spinlock *decode_tail(u32 tail)
+{
+        int cpu = (tail >> _Q_TAIL_CPU_OFFSET) - 1;
         int idx = (tail &  _Q_TAIL_IDX_MASK) >> _Q_TAIL_IDX_OFFSET;
-                                                                   
-        return per_cpu_ptr(&qnodes[idx].mcs, cpu);                 
-}                                                                  
+
+        return per_cpu_ptr(&qnodes[idx].mcs, cpu);
+}
 ```
 
-非常直接明了，简单的移位操作，需要说明的有两点：
-
-* 其中_idx_代表_context id_，使用上它并没有固定的顺序，不管是哪个context，申请就加1，释放就减1。
-* 另外，或许有细心的读者发现_cpu id_域保存的并不是cpu的值，而是cpu的值加1，原因是如果直接使用cpu值，我们无法分辨`(0, 0, 0)`代表的是当前锁没有任何持有者以及等待者，还是存在3个申请者，此时1号位置（_locked_域）和2号位置(_pending_域)刚刚释放，详见后续的解释。
+直白的移位操作，非常直接明了，_cpu_代表_cpu id_，_idx_代表_context id_。或许有细心的读者发现_cpu id_域保存的并不是cpu的值，而是cpu的值加1，原因是如果直接使用cpu值，我们无法分辨`(0, 0, 0)`代表的是当前锁没有任何持有者以及等待者，还是存在3个申请者，并且此时_locked_域和_pending_域刚刚释放，详见后续的解释。
 
 #### How does qspinlocks work?
 
+![qspinlock state switch](../figures/qspinlock_state.jpg)
 
+上图给出了4个申请者时锁状态的迁移图，描述了在不同的加锁、解锁次序下，锁的状态是如何变化的。它是基于申请者的视角绘制的，但是从代码的实现上，锁的状态迁移逻辑是基于位置设计的，除了队列头尾这样的特殊位置，我们并没有低开销的搬移操作，可以在前一个节点释放后，对后面所有节点进行搬移，下面我们按照位置视角来介绍不同位置是如何进行加解锁的。
+
+##### The lock and unlock operation at _locked_ field
+
+第一位置对应_locked_域，任何时候，锁的申请者都需要先置位_locked_域再获得锁，不论是自身身处第一位置，还是处在其他位置，排在前面的申请者释放后自己当前处于队列头（该种情形详见后续各位置得锁过程），此时可以看做把不在第一位置的队首申请者“搬到”第一位置。
+
+* **得锁，此处只讨论第一个申请者情形，对应`(0, 0, 0)` -> `(0, 0, 1)`**
+
+```c
+// include/asm-generic/qspinlock.h
+static __always_inline void queued_spin_lock(struct qspinlock *lock)
+{
+        int val = 0;
+
+        if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
+                return;
+
+        queued_spin_lock_slowpath(lock, val);
+}
+```
+
+对应`queued_spin_lock`的快路径，`atomic_try_cmpxchg_acquire`是一个Compare and Swap操作，比较_lock->val_是否为0，如果是，则将__Q_LOCKED_VAL_填入_lock->val_并且返回true，_Q_LOCKED_VAL_的值为1，即对_locked_域置位。
+
+* **解锁，对应`(x, y, 1)` -> `(x, y, 0)`**
+
+```c
+// include/asm-generic/qspinlock.h
+static __always_inline void queued_spin_unlock(struct qspinlock *lock)
+{
+        smp_store_release(&lock->locked, 0);
+}
+```
+
+由于前述持锁必定置位_locked_的保证，解锁就很简单了，任何时候，不论是什么位置，对_locked_域置0即可解锁。
+
+##### The lock and unlock operation at _pending_ field
+
+第二位置对应_pending_域，该位置的等锁者需要先置位_pending_域，然后自旋于_locked_域等待其释放。当第一位置持锁者释放锁后，该位置等待者清掉_pending_域并同时置位_locked_域得锁。
+
+* **等锁，对应`(0, 0, 1)` -> `(0, 1, 1)`**
+
+```c
+// kernel/locking/qspinlock.c
+void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+{
+        ...
+        // 置位pending域
+        val = queued_fetch_set_pending_acquire(lock);
+
+        if (unlikely(val & ~_Q_LOCKED_MASK)) {
+                if (!(val & _Q_PENDING_MASK))
+                        clear_pending(lock);
+                // 没有竞争到第二位置的申请者跳转建立mcs队列
+                goto queue;
+        }
+        // 成功置位后，等待locked域释放，自旋于locked域
+        if (val & _Q_LOCKED_MASK)
+                smp_cond_load_acquire(&lock->locked, !VAL);
+        ...
+}
+```
+
+`queued_fetch_set_pending_acquire`是一个Test and Set操作，作用是对_pending_域置位，并返回_lock->val_的旧值，可以看到只有真正的第二个申请者可以使得_val & ~__Q_LOCKED_MASK_值为0，即_pending_域和_tail_域都为0，而其他竞争第二位置失败的申请者则跳转去排队。
+
+`smp_cond_load_acquire`是一个死循环，当_lock->locked_为0后跳出循环，可以看到在成功置位_pending_后，第二位置的申请者在持续轮询_locked_域，等待第一位置释放。
+
+* **得锁，对应`(x, 1, 0)` -> `(x, 0, 1)`**
+
+```c
+// kernel/locking/qspinlock.c
+void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+{
+        ...
+        // 成功置位后，等待locked域释放，自旋于locked域
+        if (val & _Q_LOCKED_MASK)
+                smp_cond_load_acquire(&lock->locked, !VAL);
+        // 第一位置释放后，清除pending域，置位locked域得锁
+        clear_pending_set_locked(lock);
+        return;
+        ...
+}
+```
+
+在_locked_域释放后，第二位置申请者跳出死循环，通过`clear_pending_set_locked`函数清除_pending_域置位_locked_域后获得锁，此时，可以看做被从第二位置“搬到”了第一位置。
+
+##### The lock and unlock operation at the head of mcs queue (third location)
+
+第三位置对应mcs队列的队首，从第三位置开始的申请者都需要分配mcs节点并加入mcs队列。第三位置的等待者自旋于_locked_pending_域，等待第一位置和第二位置的申请者释放。当第一位置和第二位置的申请者都释放后，第三位置申请者先置位_locked_域，接着对下一个mcs节点_locked_域释放（此时下一个mcs节点会接着自旋于_locked_pending_域，详见下一小节），然后得锁。
+
+* **进入队列的路径**
+
+```c
+void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+{
+        ...
+        // case 1
+        if (val & ~_Q_LOCKED_MASK)
+                goto queue;
+        val = queued_fetch_set_pending_acquire(lock);
+
+        if (unlikely(val & ~_Q_LOCKED_MASK)) {
+                // case 2
+                if (!(val & _Q_PENDING_MASK))
+                        clear_pending(lock);
+
+                goto queue;
+        }
+        ...
+}
+```
+
+有两个，情形 1，`val & ~_Q_LOCKED_MASK != 0`，这意味着不论是第二位置_pending_或者第三位置_tail_至少存在一个等待者，因此需要加入mcs队列进行等待（注意即便_pending_域为空，我们也需要排队，因为正如前面所说我们没有搬移操作）。情形2，竞争第二位置没有竞争到，详见上一小节。
+
+* **等锁，对应`(0, x, y)` -> `(1, x, y)`**
+
+```c
+void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+{
+        ...
+queue:
+        node = this_cpu_ptr(&qnodes[0].mcs);
+        idx = node->count++;
+        // 编码tail域
+        tail = encode_tail(smp_processor_id(), idx);
+        // 分配mcs节点
+        node = grab_mcs_node(node, idx);
+
+        barrier();
+        // mcs节点初始化
+        node->locked = 0;
+        node->next = NULL;
+
+        smp_wmb();
+        // 更新tail域
+        old = xchg_tail(lock, tail);
+        next = NULL;
+        // 检查自己是不是尾节点
+        if (old & _Q_TAIL_MASK) {
+                ...
+        }
+        // 等待locked_pending域释放
+        val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
+        ...
+}
+```
+
+整个过程如上所示，可以看出与MCS locks小节队列建立过程是一样的。值得说明的是：
+
+1. _idx_代表的是_context id_，它并没有固定的顺序，_qnodes[0].count_记录当前cpu上占用的上下文个数，申请时加1，释放时减1，
+2. 因为自身是第三位置的申请者，在自己申请前mcs队列必定为空，因此`xchg_tail`交换_tail_后，_old_的_tail_域必定为**NULL**，此时`old & _Q_TAIL_MAS == 0`。第三位置最终阻塞在`atomic_cond_read_acquire`中，它是一个死循环，当_locked_pending_域释放后跳出循环。
+
+* **得锁，对应`(x, 0, 0)` -> `(x, 0, 1)`或者`(n, 0, 0)` -> `(0, 0, 1)`**
+
+```c
+void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+{
+        ...
+        val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
+
+locked:
+        // 特殊情形，自己就是尾部节点
+        if ((val & _Q_TAIL_MASK) == tail) {
+                if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
+                        goto release; /* No contention */
+        }
+        // 设置locked域
+        set_locked(lock);
+
+        // 类似MCS locks中，后继的更新是异步的，这里等待其完成
+        if (!next)
+                next = smp_cond_load_relaxed(&node->next, (VAL));
+        // 解除下一个mcs节点的locked域
+        arch_mcs_spin_unlock_contended(&next->locked);
+        ...
+}
+```
+
+当_locked_pending_域释放后，阻塞在`atomic_cond_read_acquire`的申请者会跳出死循环。如果此时自身还是mcs队列尾部节点的话，即（`(val & _Q_TAIL_MASK) == tail`），则会直接将锁设置为`(0, 0, 1)`得锁，这是一种特殊情形。如果不是，则首先通过`set_locked`函数置位_locked_域，然后通过`arch_mcs_spin_unlock_contended`函数释放下一个mcs节点的_locked_域，做完后得锁。
+
+看到这里，细节的读者可以看到在第三位置得锁时，已经释放了下一个mcs节点的_locked_域，那是不是下一个节点也获得锁了呢？并不会，详见下一小节。
+
+##### The lock and unlock operation at other location
+
+除前三特殊位置外，其他位置都在mcs队列中，初始自旋于自身mcs节点的_locked_域，当它的前继得锁时会从mcs节点的_locked_域释放，接着自旋于_locked_pending_域。除这点不同外，其他都与第三位置的过程是一样的。
+
+* **等锁，`(x, y, z)` -> `(x + 1, y, z)`**
+
+```c
+void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+{
+        ...
+queue:
+        ...
+        // 更新tail域
+        old = xchg_tail(lock, tail);
+        next = NULL;
+        // 检查自己是不是尾节点
+        if (old & _Q_TAIL_MASK) {
+                prev = decode_tail(old);
+                // 将前继指向自己
+                WRITE_ONCE(prev->next, node);
+                // 自旋于mcs节点的locked域
+                arch_mcs_spin_lock_contended(&node->locked);
+                ...
+        }
+        // 等待locked_pending域释放
+        val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
+        ...
+}
+```
+
+区别于第三位置的申请者，此时_old_的_tail_域必不为0，因此`old & _Q_TAIL_MASK != 0`，会进入对应的if分支。`arch_mcs_spin_lock_contended`是一个死循环，等待mcs节点的_locked_域释放。
+
+当它的前继得锁时会通过`arch_mcs_spin_unlock_contended`释放自身mcs节点的`locked`域，由于释放前，前继同时会通过`set_locked`置位`locked`域，自身会接着阻塞在`atomic_cond_read_acquire`，等待_locked_pending_域的释放。
+
+整个过程可以理解为，当第三位置申请者得锁时，相当于被从mcs队列队首被“搬到”了第一位置，而它的后继则“移动”到了第三位置。
+
+##### The summary
+
+1. qspinlock是基于位置的，没有搬移递补操作，除非是队首队尾这样的特殊位置，
+2. 1号位置locked域，队首节点得锁时一定置位locked域，解锁也因此非常简单，清除locked域，
+3. 2号位置pending域，自旋于locked域，等待1号位解锁，成为队首时，清pending域，置位locked域得锁，相当于“搬到”1号位，
+4. 3号位置自旋于locked_pending域，等待1、2号位解锁，成为队首时，如果自己同时是队列尾，则整个变量只保留locked置位，如果不是队尾，则置位locked域，并对下一个mcs节点locked域解锁后得锁，下一个节点开始自旋locked_pending域，相当于自己被“搬到”1号位，下一个mcs节点被“搬到”3号位，
+5. 3号及以后位置分配mcs node，tail指向mcs队列队尾mcs node，3号以后节点自旋于mcs node上的locked域。
 
 ### pvqspinlocks
 
