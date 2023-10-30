@@ -35,7 +35,7 @@
 | 尝试去获取spin lock，如果失败，不会spin，而是返回非零值      | spin_trylock         | raw_spin_trylock         |
 | 判断spin lock是否是locked，如果其他的thread已经获取了该lock，那么返回非零值，否则返回0 | spin_is_locked       | raw_spin_is_locked       |
 
-#### The struct hierachy
+### The struct hierachy
 
 ```c
 // include/linux/spinlock_types.h
@@ -143,7 +143,7 @@ static inline unsigned __sl_cas(volatile unsigned *p, unsigned old, unsigned new
 }
 ```
 
-查阅[Inline Assembly Language in C code](https://gcc.gnu.org/onlinedocs/gcc/extensions-to-the-c-language-family/how-to-use-inline-assembly-language-in-c-code.html)可知，整个函数只有一条汇编语句`cas.l %1, %0, @r0`，其中_%0_ -> _new_，_%1_ -> _old_，_%2_ -> _p_。根据[J-core](https://lists.j-core.org/pipermail/j-core/2016-August/000346.html)论坛上的解释：
+查阅[Inline Assembly Language in C code](https://gcc.gnu.org/onlinedocs/gcc/extensions-to-the-c-language-family/how-to-use-inline-assembly-language-in-c-code.html)可知，整个函数只有一条汇编语句`cas.l %1, %0, @r0`，其中%0 -> _new_，%1 -> _old_，%2 -> _p_。根据[J-core](https://lists.j-core.org/pipermail/j-core/2016-August/000346.html)论坛上的解释：
 
 > There is an atomic compare-and-swap instruction cas.l Rm,Rn, at R0 that
 >   compares the value at address R0 with Rm and, if equal, stores the
@@ -206,7 +206,7 @@ spin_unlock:
 
 为了解决公平性问题，核心思路是队列化。ticket spinlock采用了类似银行办理业务的做法，每个客户先获取一个号码，号码保证唯一性，当客户持有的号码与柜台正在服务的号码相等时，该客户才得以开始办理自己的业务。
 
-linux内核中在armv6平台上，是ticket spinlock的实现。
+linux内核中在armv6平台上，spinlock采用的是ticket spinlock实现。
 #### The definition of `arch_spinlock_t`
 
 ```c
@@ -266,12 +266,12 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 
 相比前一种方式要复杂一些，它的主要部分可以分成2部分，
 
-* 嵌入式汇编部分（part 1），主要是“原子地”将当前共享的_lock_备份到局部变量_lockval_中，并对_lock->tickets.next_加一，类比于将当前号码给新来的客户，并生成新号码等待下一位客户。
+* 嵌入式汇编部分（part 1），主要是“原子地”将当前共享变量_lock_备份到局部变量_lockval_中，并对_lock->tickets.next_加一，类比于将当前号码给新来的客户，并生成新号码等待下一位客户。
 * while循环部分（part 2），主要是轮询比较共享的_lock->tickets.owner_与局部变量_lockval.tickets.owner_是否一样，直到相等为止，类比于检查正在服务的号码是否跟自己持有的号码一致，如果不一样则继续检查。
 
 这里，共享变量中_lock->tickets.owner_充当的是正在服务的号码，_lock->tickets.next_充当的是下一个新号码，本地变量中_lockval.tickets.owner_的用途是同步正在服务的号码，_lockval.tickets.next_充当的是客户持有的号码。
 
-另外，下面是对于part 1的嵌入式汇编的补充信息，解释为何代表的是上述意思，不感兴趣的读者可以荀泽跳过该部分。我们来仔细看看以下5句汇编语句：
+另外，下面是对于part 1的嵌入式汇编的补充信息，解释为何代表的是上述意思，不感兴趣的读者可以选择跳过该部分。我们来仔细看看以下5句汇编语句：
 
 ```c
         __asm__ __volatile__(
@@ -327,11 +327,11 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 
 在说明MCS locks实现前，我们首先需要明白什么是cache-line bounce。从[quora](https://www.quora.com/What-is-cache-line-bouncing-How-may-a-spinlock-trigger-this-frequently)上的回答可以看到，当cpu访问数据的时候，需要先从memory中将数据加载到自己的cache中，然后再从cache中读取数据。当访问共享的数据时，例如A和B两个cpu分别将某个共享数据加入自己的L1 cache，当A修改该数据时，此时会做cache一致性操作，将该数据写回memory，然后再同步到cpu B的L1 cache，整个过程中，我们可以看到共享数据在不同cpu的cache-line上“弹来弹去”，这正是cache-line bounce名字的来历。我们知道从memory中读写数据是比较慢的，而从cache中读写数据比较快，因此，发生cache-line bounce时会导致性能下降。另外，如果访问共享数据的cpu比较多的时候，每一次数据修改都需要同步给所有的核，性能会进一步恶化。
 
-具体到spinlock场景下，锁是被不同申请者共同访问，共享必定存在，似乎cache-line bounce在所难免，但是是不是每一次修改都需要同步给所有申请者呢？仔细分析后可以发现，其实任意时刻只有一个cpu可以更新锁的状态，这意味着我们对锁做出的任何修改，只用同步给下一个获得者即可，而其他的等待者则可以继续自旋于自己的局部变量，这正是MCS locks的做法。
+具体到spinlock场景下，锁是被不同申请者共同访问，共享必定存在，似乎cache-line bounce在所难免，那是不是每一次修改都需要同步给所有申请者呢？仔细分析后可以发现，其实任意时刻只有一个cpu可以更新锁的状态，这意味着我们对锁做出的任何修改，只用同步给下一个获得者即可，而其他的等待者则可以继续自旋于自己的局部变量，这正是MCS locks的做法。
 
 #### The definition of `struct mcs_spinlock`
 
-当前linux内核中并没有MCS locks的完整实现，只保留了加锁**mcs_spin_lock**和解锁**mcs_spin_unlock**两个接口存在，结合其代码里的相关注释：
+当前linux内核中并没有MCS locks的完整实现，只保留了加锁**mcs_spin_lock**和解锁**mcs_spin_unlock**两个接口存在，结合代码里的相关注释：
 
 > In order to acquire the lock, the caller should declare a local node and pass a reference of the node to this function in addition to the lock.
 
@@ -378,9 +378,9 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
 以上是加锁过程的实现，_lock_是指向“锁头”节点的指针，_node_是待插入的新mcs节点。整个加锁过程可以分成四步：
 
 1. 初始化新节点_node_，设置_locked_域为加锁状态，
-2. “原子地”更新“锁头”，将_node_地址填入_*lock_，并换出其旧址，即更新前mcs队尾节点，保存在_prev_中,
+2. “原子地”更新“锁头”，将_node_地址填入_*lock_，并换出其旧址，即交换前前一刻mcs队尾节点，保存在_prev_中,
 3. 建立前继_prev_和新节点_new_的链接关系，更新链表，
-4. 自旋域节点的_locked_域，等待前一个节点释放。
+4. 自旋于节点的_locked_域，等待前一个节点释放。
 
 上述加锁过程核心的是`xchg`函数，它是一个Test and Set操作，作用正如前面所说：“原子地”将_node_填入_lock_指向的地址，并交换出其旧址保存在_prev_中。通过该操作，可以同时完成对“锁头”的更新，使其指向新节点，并确定其前继。此时，链表节点的前后关系是可以保证的，因此，建立前继和新节点的链接关系（step 3）便可以异步完成，并不需要放在step 2同一个原子操作中。整个过程可以用以下流程图表示：
 
@@ -412,7 +412,7 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
 
 ```
 
-以上是解锁过程，核心操作是通过`arch_mcs_spin_unlock_contended`对节点后继进行释放。但是正如上节所说，对“锁头”的更新（step 2）和建立节点间链接关系（step 3）是可以异步完成的，因此我们无法保证此时step 3已经完成，此时需要先通过while死循环等待其完成。`cmpxchg_release`是一个Compare and Set操作，如果`*lock == node`，则将**NULL**填入_*lock_，因为此时_node_就是最后一个节点，释放后可以直接返回。整个过程可以如下图所示：
+以上是解锁过程，核心操作是通过`arch_mcs_spin_unlock_contended`对当前节点后继进行释放。但是正如上节所说，对“锁头”的更新（step 2）和建立节点间链接关系（step 3）是可以异步完成的，我们无法保证此时step 3已经完成，因此需要先通过while死循环等待其完成。`cmpxchg_release`是一个Compare and Set操作，如果`*lock == node`，则将**NULL**填入_*lock_，因为此时_node_就是最后一个节点，对于该特殊情形，可以直接返回。整个过程可以如下图所示：
 
 ![mcs_spin_unlock](../figures/mcs_spin_unlock.jpg)
 
@@ -422,9 +422,9 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
 
 ### qspinlocks
 
-qspinlocks是基于MCS locks实现的，可以看做是压缩的qspinlocks“锁头”和mcs节点构成，它主要的优化点由：
+qspinlocks是基于MCS locks实现的，可以看做是压缩的qspinlocks“锁头”和mcs节点构成，它主要的优化点有：
 
-* 给出所需要的mcs节点上限，基于此我们可以使用数组而非指针存储尾节点，信息得到压缩，
+* 给出所需要的mcs节点上限，基于此上限我们可以使用数组而非指针存储尾节点，信息得到压缩，
 * 压缩“锁头”节点，从16字节到4字节，与ticket spinlock大小保持一致，
 * 对于少量竞争场景，直接自旋于变量上，不建立mcs队列，提升效率，
 * 等等。
@@ -481,7 +481,7 @@ typedef struct qspinlock {
 
 ![struct qspinlock](../figures/struct_qspinlock.jpg)
 
-其中，_locked_域代表当前是否加锁，占据0-7bit，本身只需要1bit，但因为对bit操作需要在字节操作基础上再做掩码操作，性能不如直接对1个byte操作，所以占据了一个字节。_pending_域代表在少量竞争下第一个等待者，占据第8bit，同样只需要1bit，基于同样的原因，占据了第二个字节。_tail_域指向mcs队列尾，由代表_context id_的_tail index_（占据16-17bit）和代表_cpu id_的_tail cpu_（占据18 - 31bit）组成。
+其中，_locked_域代表当前是否加锁，占据0-7bit，本身只需要1bit，但因为对bit操作需要在字节操作基础上再做掩码操作，性能不如直接对byte操作，所以占据了一个字节。_pending_域代表在少量竞争下第一个等待者，占据第8bit，同样只需要1bit，基于同样的原因，占据了第二个字节。_tail_域指向mcs队列尾，由代表_context id_的_tail index_（占据16-17bit）和代表_cpu id_的_tail cpu_（占据18 - 31bit）组成。
 
 后续，我们按照原作者的思路，把_locked_，_pending_，_tail_组成三元组`(locked, pending, tail)`，讨论不同情况下是如何使用的。
 
@@ -508,7 +508,9 @@ static inline __pure struct mcs_spinlock *decode_tail(u32 tail)
 }
 ```
 
-转换关系直接明了，其中_cpu_代表_cpu id_，_idx_代表_context id_。或许有细心的读者发现_cpu id_域保存的并不是cpu的值，而是cpu的值加1，原因是如果直接使用cpu值，我们无法分辨`(0, 0, 0)`代表的是当前锁是闲置的，还是存在3个申请者，并且此时_locked_域和_pending_域刚刚释放，详见后续的解释。
+转换关系直接明了，其中_cpu_代表_cpu id_，_idx_代表_context id_。
+
+或许有细心的读者发现_cpu id_域保存的并不是cpu的值，而是cpu的值加1，原因是如果直接使用cpu值，我们无法分辨`(0, 0, 0)`代表的是当前锁是闲置的，还是存在3个申请者，并且此时_locked_域和_pending_域刚刚释放，详见后续的解释。
 
 #### How does qspinlocks work?
 
@@ -518,7 +520,7 @@ static inline __pure struct mcs_spinlock *decode_tail(u32 tail)
 
 ##### The lock and unlock operation at _locked_ field
 
-第一位置对应_locked_域，任何时候，锁的申请者都需要先置位_locked_域再获得锁，不论是自身身处第一位置，还是其他位置，其前面的申请者释放后自己当前处于队列头（该种情形详见后续各位置得锁过程），此时可以看做把不在第一位置的队首申请者“搬到”第一位置。
+第一位置对应_locked_域，任何时候，锁的申请者都需要先置位_locked_域再获得锁，不论是自身身处第一位置，还是在其他位置等待，待其前面的申请者释放后自身排到队列头（详见后续各位置得锁过程），此时可以看做把不在第一位置的队首申请者“搬到”第一位置。
 
 * **得锁，此处只讨论第一个申请者情形，对应`(0, 0, 0)` -> `(0, 0, 1)`**
 
@@ -597,7 +599,7 @@ void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 }
 ```
 
-在_locked_域释放后，第二位置申请者跳出死循环，通过`clear_pending_set_locked`函数清除_pending_域置位_locked_域后获得锁，此时，可以看做被从第二位置“搬到”了第一位置。
+在_locked_域释放后，第二位置申请者跳出死循环，通过`clear_pending_set_locked`函数“原子地”清除_pending_域置位_locked_域后获得锁，此时，可以看做被从第二位置“搬到”了第一位置。
 
 ##### The lock and unlock operation at the head of mcs queue (third location)
 
@@ -625,7 +627,7 @@ void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 }
 ```
 
-有两个，情形 1，`val & ~_Q_LOCKED_MASK != 0`，这意味着不论是第二位置_pending_或者第三位置_tail_至少存在一个等待者，因此需要加入mcs队列进行等待（注意即便_pending_域为空，我们也需要排队，因为我们没有搬移操作将第三位置的申请者搬到第二位置）。情形2，竞争第二位置没有竞争到，详见上一小节。
+有两个，情形 1，`val & ~_Q_LOCKED_MASK != 0`，这意味着不论是第二位置_pending_或者第三位置_tail_至少存在一个等待者，因此需要加入mcs队列进行等待（注意即便_pending_域为空，我们也需要排队，因为没有将第三位置的申请者搬到第二位置的搬移操作），情形2，竞争第二位置没有竞争到，详见上一小节。
 
 * **等锁，对应`(0, x, y)` -> `(1, x, y)`**
 
@@ -635,10 +637,11 @@ void __lockfunc queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
         ...
 queue:
         node = this_cpu_ptr(&qnodes[0].mcs);
+        // 获取闲置的idx
         idx = node->count++;
         // 编码tail域
         tail = encode_tail(smp_processor_id(), idx);
-        // 分配mcs节点
+        // 分配空闲mcs节点
         node = grab_mcs_node(node, idx);
 
         barrier();
@@ -663,7 +666,7 @@ queue:
 整个过程如上所示，可以看出与MCS locks小节队列建立过程是一样的。值得说明的是：
 
 1. _idx_代表的是_context id_，它并没有固定的顺序，_qnodes[0].count_记录当前cpu上占用的上下文个数，申请时加1，释放时减1，
-2. 因为自身是第三位置的申请者，在自己申请前mcs队列必定为空，因此`xchg_tail`交换_tail_后，_old_的_tail_域必定为**NULL**，此时`old & _Q_TAIL_MAS == 0`。第三位置最终阻塞在`atomic_cond_read_acquire`中，它是一个死循环，当_locked_pending_域释放后跳出循环。
+2. 因为是第三位置的申请者，在自己申请前mcs队列必定为空，因此`xchg_tail`交换_tail_后，_old_的_tail_域必定为**NULL**，此时`old & _Q_TAIL_MAS == 0`。第三位置最终阻塞在`atomic_cond_read_acquire`中，它是一个死循环，当_locked_pending_域释放后跳出循环。
 
 * **得锁，对应`(x, 0, 0)` -> `(x, 0, 1)`或者`(n, 0, 0)` -> `(0, 0, 1)`**
 
@@ -687,13 +690,18 @@ locked:
                 next = smp_cond_load_relaxed(&node->next, (VAL));
         // 解除下一个mcs节点的locked域
         arch_mcs_spin_unlock_contended(&next->locked);
-        ...
+release:
+        // 得锁后释放mcs节点
+        __this_cpu_dec(qnodes[0].mcs.count);
 }
 ```
 
-当_locked_pending_域释放后，阻塞在`atomic_cond_read_acquire`的申请者会跳出死循环。如果此时自身还是mcs队列尾部节点的话，即（`(val & _Q_TAIL_MASK) == tail`），则会直接将锁设置为`(0, 0, 1)`得锁，这是一种特殊情形。如果不是，则首先通过`set_locked`函数置位_locked_域，然后通过`arch_mcs_spin_unlock_contended`函数释放下一个mcs节点的_locked_域，做完后得锁。
+当_locked_pending_域释放后，阻塞在`atomic_cond_read_acquire`的申请者会跳出死循环。如果此时自身还是mcs队列尾部节点的话，即（`(val & _Q_TAIL_MASK) == tail`），则会直接将锁设置为`(0, 0, 1)`得锁，这是一种特殊情形。如果不是，则首先通过`set_locked`函数置位_locked_域，然后通过`arch_mcs_spin_unlock_contended`函数释放下一个mcs节点的_locked_域，最后对_count_减1，归还_qnodes_节点，做完以上处理后得锁。
 
-看到这里，细节的读者可以看到在第三位置得锁时，已经释放了下一个mcs节点的_locked_域，那是不是下一个节点也获得锁了呢？并不会，详见下一小节。
+看到这里，细心的读者可能会产生2个疑问：
+
+1. 通过_count_加减1的操作，管理上下文是否会产生冲突现象呢？比如在上下文a中等锁（_count_ = 0），然后在另一个上下文b中等锁（_count_ = 1），此时会不会出现在上下文a中释放锁，_count_自减后为0，接着又来一个上下文c的等锁，从而覆盖了上下文b中的等锁。答案是不会的，因为上下文是有优先级的，比如中断打断进程上下文，我们一定会等中断上下文等锁处理后才会处理进程上下文的等锁，也就是说这里对_count_是栈的操作，因此没有问题。
+2. 在第三位置得锁时，已经释放了下一个mcs节点的_locked_域，那是不是下一个节点也获得锁了呢？并不会，详见下一小节。
 
 ##### The lock and unlock operation at other location
 
