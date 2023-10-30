@@ -143,7 +143,7 @@ static inline unsigned __sl_cas(volatile unsigned *p, unsigned old, unsigned new
 }
 ```
 
-查阅[Inline Assembly Language in C code](https://gcc.gnu.org/onlinedocs/gcc/extensions-to-the-c-language-family/how-to-use-inline-assembly-language-in-c-code.html)可知，整个函数只有一条汇编语句`cas.l %1, %0, @r0`，其中_%0_ -> _new_，_%1 -> old_，_%2_ -> _p_。根据[J-core](https://lists.j-core.org/pipermail/j-core/2016-August/000346.html)论坛上的解释：
+查阅[Inline Assembly Language in C code](https://gcc.gnu.org/onlinedocs/gcc/extensions-to-the-c-language-family/how-to-use-inline-assembly-language-in-c-code.html)可知，整个函数只有一条汇编语句`cas.l %1, %0, @r0`，其中_%0_ -> _new_，_%1_ -> _old_，_%2_ -> _p_。根据[J-core](https://lists.j-core.org/pipermail/j-core/2016-August/000346.html)论坛上的解释：
 
 > There is an atomic compare-and-swap instruction cas.l Rm,Rn, at R0 that
 >   compares the value at address R0 with Rm and, if equal, stores the
@@ -331,11 +331,11 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 
 #### The definition of `struct mcs_spinlock`
 
-当前linux内核中并没有MCS locks的完整实现，只保留了加锁**mcs_spin_lock**和解锁**mcs_spin_unlock**两个接口存在，通过其代码里的相关注释：
+当前linux内核中并没有MCS locks的完整实现，只保留了加锁**mcs_spin_lock**和解锁**mcs_spin_unlock**两个接口存在，结合其代码里的相关注释：
 
 > In order to acquire the lock, the caller should declare a local node and pass a reference of the node to this function in addition to the lock.
 
-我们可以看出，它的“锁头”也是一个`struct mcs_spinlock`结构体，定义如下所示：
+我们可以看出，它的“锁头”应该也是一个`struct mcs_spinlock`结构体或者其变种，定义如下所示：
 
 ```c
 // kernel/locking/mcs_spinlock.h
@@ -378,7 +378,7 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
 以上是加锁过程的实现，_lock_是指向“锁头”节点的指针，_node_是待插入的新mcs节点。整个加锁过程可以分成四步：
 
 1. 初始化新节点_node_，设置_locked_域为加锁状态，
-2. “原子地”更新“锁头”，将_node_地址填入_*lock_，并换出其旧址，即更新前mcs队尾节点，保存在_prev_中
+2. “原子地”更新“锁头”，将_node_地址填入_*lock_，并换出其旧址，即更新前mcs队尾节点，保存在_prev_中,
 3. 建立前继_prev_和新节点_new_的链接关系，更新链表，
 4. 自旋域节点的_locked_域，等待前一个节点释放。
 
@@ -435,7 +435,7 @@ qspinlocks是基于MCS locks实现的，可以看做是压缩的qspinlocks“锁
 
 注意，在qspinlock中，只有等锁节点占用mcs节点，当节点得锁时会回收掉，这是与MCS locks的重要区别，因此，线程A持有了锁a再持有锁b，并不会增加任何mcs节点的占用（详见How does qspinlocks work？小节）。
 
-另外，部分平台，nmi中断可能会出现嵌套场景，此时会通过让新的等待着直接自旋于“锁头”来保证代码健壮性。
+另外，部分平台，nmi中断可能会出现嵌套场景，此时会通过让新的等待者直接自旋于“锁头”来保证代码健壮性。
 
 基于以上的分析，我们所需要的mcs节点个数的上限即：cpu个数 * 上下文个数。在linux内核中，我们有**task**，**softirq**，**hardirq**，**nmi**四种上下文，这个数目远没有想象的那么多，我们不再需要通过地址来指向尾节点，而只需要_cpu id_和_context id_即可，信息得到压缩。当前mcs节点如下定义：
 
