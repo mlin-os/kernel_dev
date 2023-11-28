@@ -137,6 +137,7 @@ Here are some useful plugins that I have tried:
 | vim-markdown      | vim config for markdown    | https://github.com/plasticboy/vim-markdown.git         |
 | vim-indent-guides | show vim indent level      | https://github.com/nathanaelkane/vim-indent-guides.git |
 | vim-table-mode    | fast way to create table   | https://github.com/dhruvasagar/vim-table-mode.git      |
+| fonts             | adobe font etc             | https://github.com/dolbydu/font.git                    |
 
 4. Install typora
 

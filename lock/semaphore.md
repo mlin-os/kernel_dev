@@ -46,7 +46,7 @@ struct semaphore {
 };
 ```
 
-其中_lock_是用来保护锁内部数据完整性的，_count_记录当前资源的剩余数目，_wait_list_是一个链表，这里是作为等待队列使用，队列中是所有等待资源的线程。
+其中_lock_是用来保护锁内部数据完整性的，_count_记录当前资源的剩余数目，_wait_list_是一个链表，这里作为等待队列使用，队列中是所有等待进入临界区的任务。
 
 ### The Initialization of lock
 
@@ -103,7 +103,7 @@ void __sched down(struct semaphore *sem)
 
 ```
 
-当还有剩余资源_sem->count > 0_时，直接_count_减1并返回，线程成功获得信号量。当剩余资源为0时，则调用`__down`接口进入等待流程，其实现如下：
+当还有剩余资源（_sem->count > 0_）时，直接_count_减1并返回，申请者成功获得信号量。当剩余资源为0时，则调用`__down`接口进入等待流程，其实现如下：
 
 ```c
 static noinline void __sched __down(struct semaphore *sem)             
@@ -133,7 +133,7 @@ static noinline int __sched __down_timeout(struct semaphore *sem, long timeout)
 
 区别在于：
 
-1. 对信号的处理不同，设置线程状态为**TASK_UNINTERRUPTIBLE**后，等待线程不响应任何信号，直到有空闲信号量后主动唤起。**TASK_KILLABLE**和**TASK_INTERRUPTIBLE**这只是响应的信号不同。
+1. 对信号的处理不同，设置线程状态为**TASK_UNINTERRUPTIBLE**后，等待线程不响应任何信号，直到有空闲信号量后主动唤起。**TASK_KILLABLE**和**TASK_INTERRUPTIBLE**响应的信号不同。
 2. 是否设置超时，**MAX_SCHEDULE_TIMEOUT**定义为**LONG_MAX**，即long整型定义的最大值，因为该值巨大，设置后意味着在合理范围，等待线程一直睡眠直到获得信号量，即不设置超时。
 
 当前Linux主干代码又新增一层封装，`__down_common`是`___down_common`的封装：
@@ -229,6 +229,8 @@ static noinline void __sched __up(struct semaphore *sem)
 首先，通过`list_first_entry`宏找到等待队列的第一个任务，其次，通过`list_del`宏将其从等待队列上摘下，然后置位_waiter->up_域，使得任务再次调度后可以退出`down`流程获得信号量，最后，做完以上准备工作后，通过`wake_up_process`将任务唤起。整个过程，清晰明了。
 
 ## The priority inversion issue
+
+
 
 ## The deadlock issue
 
