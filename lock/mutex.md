@@ -2,6 +2,12 @@
 
 ## Introduction
 
+## The interface of mutex
+
+## The imlementation of mutex
+
+### The definition of `struct mutex`
+
 ```c
 struct mutex {
         atomic_long_t           owner;
@@ -18,6 +24,12 @@ struct mutex {
 #endif
 };
 ```
+
+其中，_owner_保存了当前持锁的任务的**struct task_struct**信息，_wait_lock_用来保护睡眠队列_wait_list_，该队列入队了所有需要睡眠的等锁的任务，_osq_指向一个mcs队列的队尾，该队列入队了暂时可以自旋等锁的任务，剩下的成员变量都是用于调试的，本文暂不涉及。
+
+### The lock operation
+
+
 
 ## The priority inversion problem
 

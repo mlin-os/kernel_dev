@@ -46,7 +46,7 @@ struct semaphore {
 };
 ```
 
-其中_lock_是用来保护锁内部数据完整性的，_count_记录当前资源的剩余数目，_wait_list_是一个链表，这里作为等待队列使用，队列中是所有等待进入临界区的任务。
+其中_lock_是用来保护锁内部数据完整性的，_count_记录当前资源的剩余数目，_wait_list_是一个链表，这里作为睡眠队列使用，队列中是所有等待进入临界区的任务。
 
 ### The Initialization of lock
 
