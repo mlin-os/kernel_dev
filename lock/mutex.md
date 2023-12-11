@@ -4,7 +4,7 @@
 
 ## The interface of mutex
 
-## The imlementation of mutex
+## The implementation of mutex
 
 ### The definition of `struct mutex`
 
@@ -25,9 +25,33 @@ struct mutex {
 };
 ```
 
-其中，_owner_保存了当前持锁的任务的**struct task_struct**信息，_wait_lock_用来保护睡眠队列_wait_list_，该队列入队了所有需要睡眠的等锁的任务，_osq_指向一个mcs队列的队尾，该队列入队了暂时可以自旋等锁的任务，剩下的成员变量都是用于调试的，本文暂不涉及。
+其中，_owner_保存了当前持锁的任务的`struct task_struct`信息，_wait_lock_用来保护睡眠队列_wait_list_，该队列入队了所有需要睡眠的等锁的任务，_osq_指向一个mcs队列的队尾，该队列入队了暂时可以自旋等锁的任务，剩下的成员变量都是用于调试的，本文暂不涉及。
+
+可以看出`struct mutex`的定义与`struct semaphore`有较大的相似性，区别在_osq_域。
+
+### The optimistic spin mechanism
+
+**optimistic spin**直译过来是乐观自旋，它引入的目的是提升**binary semaphore**性能。在满足持锁任务能较快释放锁的情况下，通过短时间的自旋代替更高代价的睡眠从而更快的获得锁，提升系统性能，这也optimistic的由来。
+
+#### Why introduce optimistic spin path?
+
+主要是以下两个方面：
+
+1. 获取不到**binary semaphore**的任务都会直接入队并进行睡眠，它的代价包括：两次上下文的切换开销，切换出去以及切换回来。并且，睡眠任务被唤醒后并不能立刻得到执行，需要被调度器调度到后才可以，存在调度产生的延迟。而自旋则没有这些开销，如果锁的当前持有者能很快释放，那么自旋稍作等待则显然更能提升性能。
+
+2. 另外，从cache角度，上下文切换会导致cache的刷新，从而导致性能下降，而采用自旋的方式，cache是hot的，命中率更高。
+
+#### The condition of optimistic spin?
+
+那么什么条件下进行乐观自旋呢？合理的假设是**如果当前持锁线程正在运行的话，那么它大概率会很快释放锁**。
+
+
+
+### The handoff mechanism
 
 ### The lock operation
+
+### The unlock operation
 
 
 
