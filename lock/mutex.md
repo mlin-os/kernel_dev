@@ -29,6 +29,8 @@ struct mutex {
 
 可以看出`struct mutex`的定义与`struct semaphore`有较大的相似性，区别在_osq_域。
 
+![struct mutex](../figures/struct_mutex.jpg)
+
 ### The optimistic spin mechanism
 
 **optimistic spin**直译过来是乐观自旋，它引入的目的是提升**binary semaphore**性能。在满足持锁任务能较快释放锁的情况下，通过短时间的自旋代替更高代价的睡眠从而更快的获得锁，提升系统性能，这也optimistic的由来。
@@ -92,11 +94,68 @@ struct optimistic_spin_queue {
 
 ```
 
-可以看到，乐观自旋队列采用了类似spinlock的mcs队列的实现方式。它将类型为`struct optimistic_spin_queue`的头结点_osq_插入`struct mutex`中，通过_tail_域指向mcs队列的尾节点，队列中其他节点类型为`struct optimistic_spin_node`，通过链表的方式构成队列。
+可以看到，乐观自旋队列采用了类似spinlock的mcs队列的实现方式。它将类型为`struct optimistic_spin_queue`的头结点_osq_插在`struct mutex`中，在_osq_中记录了尾节点所在的cpu信息，队列中其他节点类型为`struct optimistic_spin_node`，相互之间通过链表的方式构成队列。
 
 注意，它与spinlock的MCS队列的区别在于：1. mutex的mcs队列是由双向链表构成，而spinlock的mcs队列是由单向链表构成。原因在于乐观自旋是有条件的，在不满足条件的情况下，需要清空乐观自旋队列，因此需要支持删除操作。双向链表可以在CAS操作基础上lock-free地删除节点，详情参考该[材料](https://www.cse.chalmers.se/~tsigas/papers/SLIDES/Lock-Free%20Doubly%20Linked%20Lists%20and%20Deques.pdf)。2. 头结点_tail_域只编码了cpu信息，而spinlock中则编码了cpu信息和上下文信息。原因在于mutex只能在进程上下文中使用，而不能在中断上下文中使用，因此只需要编码cpu信息即可。
 
+整个建立队列的过程如下：
+
+```c
+bool osq_lock(struct optimistic_spin_queue *lock)
+{
+        struct optimistic_spin_node *node = this_cpu_ptr(&osq_node);
+        struct optimistic_spin_node *prev, *next;
+        int curr = encode_cpu(smp_processor_id());
+        int old;
+
+        node->locked = 0;
+        node->next = NULL;
+        node->cpu = curr;
+
+        old = atomic_xchg(&lock->tail, curr);
+        if (old == OSQ_UNLOCKED_VAL)
+                return true;
+
+        prev = decode_cpu(old);
+        node->prev = prev;
+
+        smp_wmb();
+
+        WRITE_ONCE(prev->next, node);
+
+        if (smp_cond_load_relaxed(&node->locked, VAL || need_resched() ||
+                                  vcpu_is_preempted(node_cpu(node->prev))))
+                return true;
+
+        for (;;) {
+                if (data_race(prev->next) == node &&
+                    cmpxchg(&prev->next, node, NULL) == node)
+                        break;
+
+                if (smp_load_acquire(&node->locked))
+                        return true;
+
+                cpu_relax();
+
+                prev = READ_ONCE(node->prev);
+        }
+
+        next = osq_wait_next(lock, node, prev);
+        if (!next)
+                return false;
+
+        WRITE_ONCE(next->prev, prev);
+        WRITE_ONCE(prev->next, next);
+
+        return false;
+}
+```
+
+
+
 ### The handoff mechanism
+
+
 
 ### The lock operation
 
