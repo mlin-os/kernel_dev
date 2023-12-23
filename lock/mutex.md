@@ -107,11 +107,11 @@ bool osq_lock(struct optimistic_spin_queue *lock)
         struct optimistic_spin_node *prev, *next;
         int curr = encode_cpu(smp_processor_id());
         int old;
-
+        /* init the new node */
         node->locked = 0;
         node->next = NULL;
         node->cpu = curr;
-
+        /* update tail to point to new node */
         old = atomic_xchg(&lock->tail, curr);
         if (old == OSQ_UNLOCKED_VAL)
                 return true;
@@ -120,7 +120,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
         node->prev = prev;
 
         smp_wmb();
-
+        /* connect the ancestor and the new node */
         WRITE_ONCE(prev->next, node);
 
         if (smp_cond_load_relaxed(&node->locked, VAL || need_resched() ||
@@ -131,7 +131,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
                 if (data_race(prev->next) == node &&
                     cmpxchg(&prev->next, node, NULL) == node)
                         break;
-
+                /* spin on local locked field until it's released */
                 if (smp_load_acquire(&node->locked))
                         return true;
 
