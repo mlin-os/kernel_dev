@@ -122,16 +122,16 @@ bool osq_lock(struct optimistic_spin_queue *lock)
         smp_wmb();
         /* connect the ancestor and the new node */
         WRITE_ONCE(prev->next, node);
-
+        /* spin on local locked field until it's released */
         if (smp_cond_load_relaxed(&node->locked, VAL || need_resched() ||
                                   vcpu_is_preempted(node_cpu(node->prev))))
                 return true;
-
+        /* code below are used to dequeue the node when spin are not allowd */
         for (;;) {
                 if (data_race(prev->next) == node &&
                     cmpxchg(&prev->next, node, NULL) == node)
                         break;
-                /* spin on local locked field until it's released */
+
                 if (smp_load_acquire(&node->locked))
                         return true;
 
@@ -151,7 +151,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
 }
 ```
 
-
+从上面的代码可以看出，
 
 ### The handoff mechanism
 
