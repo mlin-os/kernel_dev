@@ -96,9 +96,9 @@ struct optimistic_spin_queue {
 
 可以看到，乐观自旋队列采用了类似spinlock的mcs队列的实现方式。它将类型为`struct optimistic_spin_queue`的头结点_osq_插在`struct mutex`中，在_osq_中记录了尾节点所在的cpu信息，队列中其他节点类型为`struct optimistic_spin_node`，相互之间通过链表的方式构成队列。
 
-注意，它与spinlock的MCS队列的区别在于：1. mutex的mcs队列是由双向链表构成，而spinlock的mcs队列是由单向链表构成。原因在于乐观自旋是有条件的，在不满足条件的情况下，需要清空乐观自旋队列，因此需要支持删除操作。双向链表可以在CAS操作基础上lock-free地删除节点，详情参考该[材料](https://www.cse.chalmers.se/~tsigas/papers/SLIDES/Lock-Free%20Doubly%20Linked%20Lists%20and%20Deques.pdf)。2. 头结点_tail_域只编码了cpu信息，而spinlock中则编码了cpu信息和上下文信息。原因在于mutex只能在进程上下文中使用，而不能在中断上下文中使用，因此只需要编码cpu信息即可。
+注意，它与spinlock的mcs队列的区别在于：1. mutex的mcs队列是由双向链表构成，而spinlock的mcs队列是由单向链表构成。原因在于乐观自旋是有条件的，在不满足条件的情况下，需要清空乐观自旋队列，因此需要支持删除操作。双向链表可以在CAS操作基础上lock-free地删除节点，详情参考该[材料](https://www.cse.chalmers.se/~tsigas/papers/SLIDES/Lock-Free%20Doubly%20Linked%20Lists%20and%20Deques.pdf)。2. 头结点_tail_域只编码了cpu信息，而spinlock中则编码了cpu信息和上下文信息。原因在于mutex只能在进程上下文中使用，而不能在中断上下文中使用，因此只需要编码cpu信息即可。
 
-整个建立队列的过程如下：
+乐观自旋队列建立的过程如下：
 
 ```c
 bool osq_lock(struct optimistic_spin_queue *lock)
@@ -122,7 +122,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
         smp_wmb();
         /* connect the ancestor and the new node */
         WRITE_ONCE(prev->next, node);
-        /* spin on local locked field until it's released */
+        /* spin on local locked field until it's released or when spin is not allowed */
         if (smp_cond_load_relaxed(&node->locked, VAL || need_resched() ||
                                   vcpu_is_preempted(node_cpu(node->prev))))
                 return true;
@@ -151,7 +151,25 @@ bool osq_lock(struct optimistic_spin_queue *lock)
 }
 ```
 
-从上面的代码可以看出，
+从上面的代码可以看出，加入乐观自旋的新任务，首先初始化自身对应的局部变量_node_，然后通过`atomic_xchg`将自身信息保存到_tail_域并把自身前继的信息保存在`old`中，接着建立前继和自身的链接关系，最后阻塞在`smp_cond_load_relaxed`。`smp_cond_load_relaxed`行后续的代码对应如何将自身从乐观自旋队列中摘除，这里不再赘述。
+
+`smp_cond_load_relaxed`是一个宏函数，展开后如下：
+
+```c
+{
+        typeof(&node->locked) __PTR = (&node->locked);
+        __unqual_scalar_typeof(*&node->locked) VAL;
+        for (;;) {
+                VAL = READ_ONCE(*__PTR);
+                if (VAL || need_resched() || vcpu_is_preempted(node_cpu(node->prev)))
+                        break;
+                cpu_relax();
+        }
+        (typeof(*ptr))VAL;
+}
+```
+
+可以看到，只有当`node->locked != 0`或者`need_resched() == true`或者`vcpu_is_preempted(node_cpu(node->prev)) == true`才会跳出死循环，即当前继对`node->locked`解锁或者不满足乐观自旋条件后跳出死循环。
 
 ### The handoff mechanism
 
