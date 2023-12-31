@@ -1,5 +1,7 @@
 # Mutex's Mechanism and Implementation
 
+[TOC]
+
 ## Introduction
 
 ## The interface of mutex
@@ -151,7 +153,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
 }
 ```
 
-从上面的代码可以看出，加入乐观自旋的新任务，首先初始化自身对应的局部变量_node_，然后通过`atomic_xchg`将自身信息保存到_tail_域并把自身前继的信息保存在`old`中，接着建立前继和自身的链接关系，最后阻塞在`smp_cond_load_relaxed`。`smp_cond_load_relaxed`行后续的代码对应如何将自身从乐观自旋队列中摘除，这里不再赘述。
+从上面的代码可以看出，加入乐观自旋的新任务，首先初始化自身对应的局部变量_node_，然后通过`atomic_xchg`将自身信息保存到_tail_域并把自身前继的信息保存在`old`中，接着建立前继和自身的链接关系，最后阻塞在`smp_cond_load_relaxed`。
 
 `smp_cond_load_relaxed`是一个宏函数，展开后如下：
 
@@ -171,9 +173,15 @@ bool osq_lock(struct optimistic_spin_queue *lock)
 
 可以看到，只有当`node->locked != 0`或者`need_resched() == true`或者`vcpu_is_preempted(node_cpu(node->prev)) == true`才会跳出死循环，即当前继对`node->locked`解锁或者不满足乐观自旋条件后跳出死循环。
 
+`smp_cond_load_relaxed`行后续的代码对应如何将自身从乐观自旋队列中摘除，这里不再赘述。
+
 ### The handoff mechanism
 
+handoff机制的提出是为了解决饥饿问题，因为乐观自旋的存在使得睡眠路径上的任务难以获得锁，所以需要需要一定的机制使得锁必定能被分配给睡眠任务。
 
+#### The path of gain lock
+
+同一时刻争锁的任务最大为两个。
 
 ### The lock operation
 
